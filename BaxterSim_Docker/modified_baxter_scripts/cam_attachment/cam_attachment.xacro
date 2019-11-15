@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="null_gripper">
+  <xacro:macro name="null_gripper" params="side">
+  <!-- This is not a URDF, it is a URDF fragment describing a default end effector
+     to be added to the robot URDF at run time.
+  -->
+  <link name="${side}_gripper_base">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.0001"/>
+      <inertia ixx="1e-08" ixy="0" ixz="0" iyy="1e-08" iyz="0" izz="1e-08"/>
+    </inertial>
+  </link>
+  <link name="${side}_gripper">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.0001"/>
+      <inertia ixx="1e-08" ixy="0" ixz="0" iyy="1e-08" iyz="0" izz="1e-08"/>
+    </inertial>
+  </link>
+  <joint name="${side}_gripper_base" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="${side}_hand"/>
+    <child link="${side}_gripper_base"/>
+  </joint>
+  <joint name="${side}_endpoint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="${side}_gripper_base"/>
+    <child link="${side}_gripper"/>
+  </joint>
+  
+  <joint name="cam_attachment" type="fixed">
+    <axis xyz="0 1 0" />
+    <origin xyz="-0.025 0 0.0125" rpy="0 ${pi} 0"/>
+    <parent link="${side}_gripper"/>
+    <child link="cam_link"/>
+  </joint>
+  
+  <!-- Camera -->
+  <link name="cam_link">
+    <collision>
+      <origin xyz="0 0 0" rpy="${-pi/2} ${pi} 0"/>
+      <geometry>
+    <box size="0.025 0.025 0.025"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0" rpy="${-pi/2} ${pi} 0"/>
+      <geometry>
+    <box size="0.025 0.025 0.025"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="${-pi/2} ${pi} 0"/>
+      <inertia ixx="1e-06" ixy="0" ixz="0" iyy="1e-06" iyz="0" izz="1e-06"/>
+    </inertial>
+  </link>
+  
+  </xacro:macro>
+</robot>

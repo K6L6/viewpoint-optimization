@@ -1,0 +1,21 @@
+#ignore folders with logs or data
+/dataset_sample
+/test_images
+/train_result
+/4_sm2018_d0.01_b30_e200_gs12 
+/Baxter_pybullet
+/container-ssh-keys
+/preliminary_train_result
+/simulator_dataset_results
+/BaxterSim_rosws
+/GQNDocker/image_sample
+/GQNDocker/snapshots
+/GQNDocker/viewpoints_sample
+/BaxterSim_Docker/simulator_dataset
+
+# ignore all images
+*.bmp
+*.jpg
+*.jpeg
+*.png
+*.pdf
