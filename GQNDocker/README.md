@@ -202,7 +202,10 @@ Epoch 1500 done in 0.703 min
     lr: 9.881880625e-05 - sigma: 1.829375 - training_steps: 21000
     Time elapsed: 446.405 min
 
+# Multi-GPU test
 python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/rooms_free_camera_with_object_rotations_npy/train_20npy/ --test-dataset-directory /GQN/gqn-datasets/rooms_free_camera_with_object_rotations_npy/test_1/ --snapshot-directory ./snapshots/6_roomswrotation_d20npy_b30_e300_gs12test --log-directory ./log/6_roomswrotation_d20npy_b30_e300_gs12test --batch-size 30 --epochs 300 --ngpu 1
+approx 6 days, due to saving the model every epoch.
+
 
 #testlist
 ls ./gqn-datasets/shepard_metzler_5_npy/test/images/*.npy | head -n 50 > testi.list
