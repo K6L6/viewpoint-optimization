@@ -1,3 +1,11 @@
+# Added Files Explanation
+model_chain.py is the GQN model converted into chainer.Chain
+multi_process_updater.py contains training updater built from Chainer API for the purpose of running GQN on multi-gpu
+train_mGPU.py is the GQN training script modified to run with multi-gpu
+train_mGPU_extensions.py contains chainer extensions used in the training script (i.e. validation, learning rate annealing)
+observation4mgpu.py is a script which renders predictions after training GQN
+
+# Originally pulled from (https://github.com/musyoku/chainer-gqn.git)
 # :construction: Work in Progress :construction:
 
 # Neural scene representation and rendering
