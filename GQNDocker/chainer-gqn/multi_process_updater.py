@@ -235,7 +235,7 @@ class CustomUpdater(updaters.StandardUpdater):
 class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
     def __init__(self, iterator, optimizer, converter, devices, pixel_log_sigma, **kw):
         super(CustomParallelUpdater, self).__init__(
-            iterator, optimizer, converter, devices=devices)
+            iterator, optimizer, converter=converter, devices=devices)
         self.start = True
         self.devices = devices
         self.pixel_log_sigma = pixel_log_sigma
