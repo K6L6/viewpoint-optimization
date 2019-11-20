@@ -93,7 +93,7 @@ class _Worker(multiprocessing.Process):
         self.proc_id = proc_id
         self.pipe = pipe
         self.converter = master.converter
-        self.model = master._master
+        self.model = master.model
         self.device = master._devices[proc_id]
         self.iterator = master._mpu_iterators[proc_id]
         self.n_devices = len(master._devices)
@@ -186,7 +186,6 @@ class CustomUpdater(updaters.StandardUpdater):
         self.start = True
         self.device = device
         self.pixel_log_sigma = pixel_log_sigma
-        # self.args1 = kw['args1']
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -197,18 +196,16 @@ class CustomUpdater(updaters.StandardUpdater):
         # Get batch and convert into variables
         batch = train_iter.next()
         x = self.converter(batch, self.device)
-        # logging.info([i for i in x])
 
         images = x['image']
         viewpoints = x['viewpoint']
-        # exit(1)
+        
         if self.start:
             optimizer.target.cleargrads()
             self.start = False
         xp = optimizer.target.xp
         batch_size = len(batch)
         
-        # Compute the loss at this time step and accumulate it
         representation, query_images, query_viewpoints = encode_scene(images, viewpoints, optimizer.target, self.device)
         # Compute distribution parameters
         (z_t_param_array,
@@ -226,7 +223,6 @@ class CustomUpdater(updaters.StandardUpdater):
         loss = -ELBO
         optimizer.target.cleargrads()
         loss.backward()  # Backprop
-        # ipdb.set_trace()
         
         optimizer.update()
         with chainer.no_backprop_mode():
@@ -243,96 +239,108 @@ class CustomUpdater(updaters.StandardUpdater):
 class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
     def __init__(self,iterator,optimizer,devices):
         super(CustomParallelUpdater,self).__init__(iterator,optimizer,devices=devices)
+        self.devices = devices
+        self.pixel_log_sigma = pixel_log_sigma
+        self.iterator = self.get_iterator('main')
+        self.optimizer = self.get_optimizer('main')
+        self.model = self.optimizer.target
 
-        def setup_workers(self):
-            if self._initialized:
-                return
-            self._initialized = True
+    def setup_workers(self):
+        if self._initialized:
+            return
+        self._initialized = True
 
-            self._master.cleargrads()
-            for i in six.moves.range(1, len(self._devices)):
-                pipe, worker_end = multiprocessing.Pipe()
-                worker = _Worker(i, worker_end, self)
-                worker.start()
-                self._workers.append(worker)
-                self._pipes.append(pipe)
+        self.model.cleargrads()
+        for i in six.moves.range(1, len(self._devices)):
+            pipe, worker_end = multiprocessing.Pipe()
+            worker = _Worker(i, worker_end, self)
+            worker.start()
+            self._workers.append(worker)
+            self._pipes.append(pipe)
 
-            with chainer.using_device(self._devices[0]):
-                self._master.to_device(self._devices[0])
-                if len(self._devices) > 1:
-                    comm_id = nccl.get_unique_id()
-                    self._send_message(('set comm_id', comm_id))
-                    self.comm = nccl.NcclCommunicator(
-                        len(self._devices), comm_id, 0)
+        with chainer.using_device(self._devices[0]):
+            self.model.to_device(self._devices[0])
+            if len(self._devices) > 1:
+                comm_id = nccl.get_unique_id()
+                self._send_message(('set comm_id', comm_id))
+                self.comm = nccl.NcclCommunicator(
+                    len(self._devices), comm_id, 0)
 
-        def update_core(self):
-            # self.setup_workers()
+    def update_core(self):
+        devices = [chainer.get_device(device) for device in self.devices]
+        iterator = self.get_iterator('main')
+        optimizer = self.get_optimizer('main')
+        model = self.model
 
-            # self._send_message(('update', None))
-            with chainer.using_device(self._devices[0]):
-                # For reducing memory
-                self._master.cleargrads()
+        batch = iterator.next()
+        x = self.converter(batch,self.devices) #how to split devices?
 
-                #------------------------------------------------------------------------------
-                # Scene encoder
-                #------------------------------------------------------------------------------
-                # images.shape: (batch, views, height, width, channels)
-                images, viewpoints = subset[data_indices]
-                representation, query_images, query_viewpoints = encode_scene(
-                    images, viewpoints)
+        images = x['image']
+        viewpoints = x['viewpoint']
 
-                #------------------------------------------------------------------------------
-                # Compute empirical ELBO
-                #------------------------------------------------------------------------------
-                # Compute distribution parameterws
-                (z_t_param_array,
-                    pixel_mean) = model.sample_z_and_x_params_from_posterior(
-                        query_images, query_viewpoints, representation)
+        if self.start:
+            model.cleargrads()
+            self.start = False
+        xp = model.xp
+        batch_size = len(batch)
 
-                # Compute ELBO
-                (ELBO, bits_per_pixel, negative_log_likelihood,
-                    kl_divergence) = estimate_ELBO(query_images, z_t_param_array,
-                                                pixel_mean, pixel_log_sigma)
+        with chainer.using_device(self._devices[0]):
+            # For reducing memory
+            model.cleargrads()
 
-                #------------------------------------------------------------------------------
-                # Update parameters
-                #------------------------------------------------------------------------------
-                loss = -ELBO
-                model.cleargrads()
-                loss.backward()
-                # if start_training: 
-                #     g = chainer.computational_graph.build_computational_graph(pixel_mean)
-                #     with open(os.path.join(args.snapshot_directory,'cg.dot'), 'w') as o:
-                #         o.write(g.dump())
-                #     start_training = False
-                # exit()
-                optimizer.update(meter_train.num_updates)
+            representation, query_images, query_viewpoints = encode_scene(images, viewpoints, optimizer.target, self.device)
+            #------------------------------------------------------------------------------
+            # Scene encoder
+            #------------------------------------------------------------------------------
+            # images.shape: (batch, views, height, width, channels)
+            images, viewpoints = subset[data_indices]
+            representation, query_images, query_viewpoints = encode_scene(
+                images, viewpoints)
 
-                #------------------------------------------------------------------------------
-                # Annealing
-                #------------------------------------------------------------------------------
-                variance_scheduler.update(meter_train.num_updates)
-                pixel_log_sigma[...] = math.log(
-                    variance_scheduler.standard_deviation)
-                exit(1)
-                # NCCL: reduce grads
-                null_stream = cuda.Stream.null
-                if self.comm is not None:
-                    gg = gather_grads(self._master)
-                    nccl_data_type = _get_nccl_data_type(gg.dtype)
-                    self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                    nccl_data_type, nccl.NCCL_SUM,
-                                    0, null_stream.ptr)
-                    scatter_grads(self._master, gg)
-                    del gg
-                optimizer.update()
-                if self.comm is not None:
-                    gp = gather_params(self._master)
-                    nccl_data_type = _get_nccl_data_type(gp.dtype)
-                    self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type,
-                                    0, null_stream.ptr)
+            #------------------------------------------------------------------------------
+            # Compute empirical ELBO
+            #------------------------------------------------------------------------------
+            # Compute distribution parameterws
+            (z_t_param_array,
+                pixel_mean) = model.sample_z_and_x_params_from_posterior(
+                    query_images, query_viewpoints, representation)
 
-                if self.auto_new_epoch and iterator.is_new_epoch:
-                    optimizer.new_epoch(auto=True)
-    
+            # Compute ELBO
+            (ELBO, bits_per_pixel, negative_log_likelihood,
+                kl_divergence) = estimate_ELBO(query_images, z_t_param_array,
+                                            pixel_mean, self.pixel_log_sigma, batch_size)
+
+            #------------------------------------------------------------------------------
+            # Update parameters
+            #------------------------------------------------------------------------------
+            loss = -ELBO
+            model.cleargrads()
+            loss.backward()
+            # if start_training: 
+            #     g = chainer.computational_graph.build_computational_graph(pixel_mean)
+            #     with open(os.path.join(args.snapshot_directory,'cg.dot'), 'w') as o:
+            #         o.write(g.dump())
+            #     start_training = False
+            # exit(1)
+
+            # NCCL: reduce grads
+            null_stream = cuda.Stream.null
+            if self.comm is not None:
+                gg = gather_grads(model)
+                nccl_data_type = _get_nccl_data_type(gg.dtype)
+                self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
+                                nccl_data_type, nccl.NCCL_SUM,
+                                0, null_stream.ptr)
+                scatter_grads(model, gg)
+                del gg
+            optimizer.update()
+            if self.comm is not None:
+                gp = gather_params(model)
+                nccl_data_type = _get_nccl_data_type(gp.dtype)
+                self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type,
+                                0, null_stream.ptr)
+
+            if self.auto_new_epoch and iterator.is_new_epoch:
+                optimizer.new_epoch(auto=True)
+
         
