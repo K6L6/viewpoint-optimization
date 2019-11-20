@@ -233,9 +233,9 @@ class CustomUpdater(updaters.StandardUpdater):
         optimizer.target.cleargrads()  # Clear the parameter gradients
 
 class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
-    def __init__(self, iterator, optimizer, converter, devices, pixel_log_sigma, **kw):
+    def __init__(self, iterator, optimizer, devices, converter, pixel_log_sigma, **kw):
         super(CustomParallelUpdater, self).__init__(
-            iterator, optimizer, converter=converter, devices=devices)
+            iterator, optimizer, devices=devices, converter=converter)
         self.start = True
         self.devices = devices
         self.pixel_log_sigma = pixel_log_sigma
