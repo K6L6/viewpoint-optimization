@@ -174,15 +174,11 @@ class CustomUpdater(updaters.StandardUpdater):
         device (int or dict): The destination device info to send variables. In the
             case of cpu or single gpu, `device=-1 or 0`, respectively.
             In the case of multi-gpu, `device={"main":0, "sub_1": 1, ...}`.
-        accum_grad (int):The number of gradient accumulation. if set to 2, the network
-            parameters will be updated once in twice, i.e. actual batchsize will be doubled.
     """
 
     def __init__(self, train_iter, optimizer, converter, device, pixel_log_sigma, accum_grad=1, **kw):
         super(CustomUpdater, self).__init__(
             train_iter, optimizer, converter=converter, device=device)
-        self.accum_grad = accum_grad
-        self.forward_count = 0
         self.start = True
         self.device = device
         self.pixel_log_sigma = pixel_log_sigma
@@ -237,8 +233,10 @@ class CustomUpdater(updaters.StandardUpdater):
         optimizer.target.cleargrads()  # Clear the parameter gradients
 
 class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
-    def __init__(self,iterator,optimizer,devices):
-        super(CustomParallelUpdater,self).__init__(iterator,optimizer,devices=devices)
+    def __init__(self, iterator, optimizer, converter, devices, pixel_log_sigma, **kw):
+        super(CustomParallelUpdater, self).__init__(
+            iterator, optimizer, converter, devices=devices)
+        self.start = True
         self.devices = devices
         self.pixel_log_sigma = pixel_log_sigma
         self.iterator = self.get_iterator('main')

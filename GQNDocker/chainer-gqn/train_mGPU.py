@@ -194,12 +194,12 @@ def main():
         train_iters = [
             chainer.iterators.MultiprocessIterator(dataset_train, args.batch_size, n_processes=args.number_processes) for i in chainer.datasets.split_dataset_n_random(dataset_train, len(devices))
         ]
-        updater = CustomParallelUpdater(train_iters,optimizer,devices)
+        updater = CustomParallelUpdater(train_iters,optimizer, devices, converter=chainer.dataset.concat_examples, pixel_log_sigma=pixel_log_sigma)
     
     elif ngpu==1:
         
         train_iters = chainer.iterators.SerialIterator(dataset_train,args.batch_size,shuffle=True)
-        updater = CustomUpdater(train_iters, optimizer, converter=chainer.dataset.concat_examples, device=0, pixel_log_sigma=pixel_log_sigma)
+        updater = CustomUpdater(train_iters, optimizer, device=0, converter=chainer.dataset.concat_examples, pixel_log_sigma=pixel_log_sigma)
         
     else:
         raise NotImplementedError('Implement for single gpu or cpu')
@@ -278,7 +278,7 @@ if __name__ == "__main__":
     parser.add_argument("--visualize", action="store_true", default=False)
     parser.add_argument("--number-processes",type=int) # number of CPU cores to split preprocessing of data.
     parser.add_argument("--verbose", type=int, default=1)
-    parser.add_argument("--report-interval-iters", type=int, default=10)
+    parser.add_argument("--report-interval-iters", type=int, default=25)
     args = parser.parse_args()
     
     # logging info
