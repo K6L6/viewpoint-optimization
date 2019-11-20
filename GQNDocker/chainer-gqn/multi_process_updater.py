@@ -14,6 +14,7 @@ import time
 import chainer.functions as cf
 
 from chainer.training import updaters
+from chainer.backends import cuda
 from cupy.cuda import nccl
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads,gather_params,scatter_grads,scatter_params,_get_nccl_data_type
 
@@ -94,7 +95,8 @@ class _Worker(multiprocessing.Process):
         self.pipe = pipe
         self.converter = master.converter
         self.model = master.model
-        self.device = master._devices[proc_id]
+        self.device_index = master._devices[proc_id]
+        self.device = chainer.get_device('@cupy:'+str(self.device_index))
         self.iterator = master._mpu_iterators[proc_id]
         self.n_devices = len(master._devices)
 
@@ -242,7 +244,8 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
         self.iterator = self.get_iterator('main')
         self.optimizer = self.get_optimizer('main')
         self.model = self.optimizer.target
-        self._devices = [chainer.get_device('@cupy:'+str(device)) for device in list(devices.values())]
+        self._devices = [device for device in list(devices.values())]
+        # self._devices = [chainer.get_device('@cupy:'+str(device)) for device in list(devices.values())]
 
     def setup_workers(self):
         if self._initialized:
@@ -273,7 +276,7 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
             model = self.model
 
             batch = iterator.next()
-            x = self.converter(batch,self._devices[0]) #how to split devices?
+            x = self.converter(batch, self._devices[0]) #how to split devices?
 
             images = x['image']
             viewpoints = x['viewpoint']
@@ -283,17 +286,14 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
                 self.start = False
             xp = model.xp
             batch_size = len(batch)
+            
             #  For reducing memory
             model.cleargrads()
-
-            representation, query_images, query_viewpoints = encode_scene(images, viewpoints, optimizer.target, self._devices[0])
+            
             #------------------------------------------------------------------------------
             # Scene encoder
             #------------------------------------------------------------------------------
-            # images.shape: (batch, views, height, width, channels)
-            images, viewpoints = subset[data_indices]
-            representation, query_images, query_viewpoints = encode_scene(
-                images, viewpoints)
+            representation, query_images, query_viewpoints = encode_scene(images, viewpoints, model, self._devices[0])
 
             #------------------------------------------------------------------------------
             # Compute empirical ELBO
@@ -305,7 +305,7 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
 
             # Compute ELBO
             (ELBO, bits_per_pixel, negative_log_likelihood,
-                kl_divergence) = estimate_ELBO(query_images, z_t_param_array,
+                kl_divergence) = estimate_ELBO(xp, query_images, z_t_param_array,
                                             pixel_mean, self.pixel_log_sigma, batch_size)
 
             #------------------------------------------------------------------------------
