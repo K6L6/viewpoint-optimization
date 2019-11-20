@@ -242,6 +242,7 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
         self.iterator = self.get_iterator('main')
         self.optimizer = self.get_optimizer('main')
         self.model = self.optimizer.target
+        self._devices = [chainer.get_device('@cupy:'+str(device)) for device in list(devices.values())]
 
     def setup_workers(self):
         if self._initialized:
@@ -265,28 +266,27 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
                     len(self._devices), comm_id, 0)
 
     def update_core(self):
-        devices = [chainer.get_device(device) for device in self.devices]
-        iterator = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
-        model = self.model
-
-        batch = iterator.next()
-        x = self.converter(batch,self.devices) #how to split devices?
-
-        images = x['image']
-        viewpoints = x['viewpoint']
-
-        if self.start:
-            model.cleargrads()
-            self.start = False
-        xp = model.xp
-        batch_size = len(batch)
-
+        self.setup_workers()
         with chainer.using_device(self._devices[0]):
-            # For reducing memory
+            iterator = self.get_iterator('main')
+            optimizer = self.get_optimizer('main')
+            model = self.model
+
+            batch = iterator.next()
+            x = self.converter(batch,self._devices[0]) #how to split devices?
+
+            images = x['image']
+            viewpoints = x['viewpoint']
+
+            if self.start:
+                model.cleargrads()
+                self.start = False
+            xp = model.xp
+            batch_size = len(batch)
+            #  For reducing memory
             model.cleargrads()
 
-            representation, query_images, query_viewpoints = encode_scene(images, viewpoints, optimizer.target, self.device)
+            representation, query_images, query_viewpoints = encode_scene(images, viewpoints, optimizer.target, self._devices[0])
             #------------------------------------------------------------------------------
             # Scene encoder
             #------------------------------------------------------------------------------
