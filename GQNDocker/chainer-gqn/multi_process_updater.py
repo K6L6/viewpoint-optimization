@@ -55,7 +55,7 @@ def encode_scene(images, viewpoints, model, gpu_device):
     return representation, query_images, query_viewpoints
 
 def estimate_ELBO(xp, query_images, z_t_param_array, pixel_mean,
-                    pixel_log_sigma,batch_size):
+                    pixel_log_sigma, batch_size):
     # KL Diverge, pixel_ln_varnce
     kl_divergence = 0
     for params_t in z_t_param_array:
@@ -73,7 +73,7 @@ def estimate_ELBO(xp, query_images, z_t_param_array, pixel_mean,
     num_pixels_per_batch = np.prod(query_images.shape[1:])
     normal = chainer.distributions.Normal(
         query_images, log_scale=xp.array(pixel_log_sigma))
-    # ipdb.set_trace()
+    
     log_px = cf.sum(normal.log_prob(pixel_mean)) / batch_size
     negative_log_likelihood = -log_px
 
@@ -99,6 +99,7 @@ class _Worker(multiprocessing.Process):
         self.device = chainer.get_device('@cupy:'+str(self.device_index))
         self.iterator = master._mpu_iterators[proc_id]
         self.n_devices = len(master._devices)
+        self.pixel_log_sigma = master.pixel_log_sigma
 
     def setup(self):
         _, comm_id = self.pipe.recv()
@@ -125,7 +126,17 @@ class _Worker(multiprocessing.Process):
                 # For reducing memory
                 self.model.cleargrads()
 
-                batch = self.converter(self.iterator.next(), self.device)
+                model = self.model
+                model.cleargrads()
+
+                x = self.converter(self.iterator.next(), self.device_index)
+                batch_size = len(x)
+                images = x['image']
+                viewpoints = x['viewpoint']
+                xp = model.xp
+
+                representation, query_images, query_viewpoints = encode_scene(images, viewpoints, model, self.device_index)
+
                 with self.reporter.scope({}):  # pass dummy observation
                     # Compute distribution parameterws
                     (z_t_param_array,
@@ -134,12 +145,12 @@ class _Worker(multiprocessing.Process):
 
                     # Compute ELBO
                     (ELBO, bits_per_pixel, negative_log_likelihood,
-                        kl_divergence) = estimate_ELBO(query_images, z_t_param_array,
-                                                    pixel_mean, pixel_log_sigma)
+                        kl_divergence) = estimate_ELBO(xp, query_images, z_t_param_array,
+                                                    pixel_mean, self.pixel_log_sigma, batch_size)
                     
                     # Update parameters                   
                     loss = -ELBO
-                self.model.cleargrads()
+                
                 loss.backward()
                 del loss
 
@@ -270,6 +281,8 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
 
     def update_core(self):
         self.setup_workers()
+        self._send_message(('update', None))
+
         with chainer.using_device(self._devices[0]):
             iterator = self.get_iterator('main')
             optimizer = self.get_optimizer('main')
@@ -312,7 +325,7 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
             # Update parameters
             #------------------------------------------------------------------------------
             loss = -ELBO
-            model.cleargrads()
+            
             loss.backward()
             # if start_training: 
             #     g = chainer.computational_graph.build_computational_graph(pixel_mean)
@@ -331,14 +344,11 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
                                 0, null_stream.ptr)
                 scatter_grads(model, gg)
                 del gg
+
             optimizer.update()
             if self.comm is not None:
                 gp = gather_params(model)
                 nccl_data_type = _get_nccl_data_type(gp.dtype)
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type,
                                 0, null_stream.ptr)
-
-            if self.auto_new_epoch and iterator.is_new_epoch:
-                optimizer.new_epoch(auto=True)
-
-        
+                                
