@@ -5,7 +5,7 @@ import math
 import chainer
 from chainer import reporter
 import random
-import numpy as np
+# import numpy as np
 import cupy as cp
 import logging
 import ipdb
@@ -25,7 +25,7 @@ from gqn.preprocessing import preprocess_images
 #==============================================================================
 def encode_scene(images, viewpoints, model, gpu_device):
     # (batch, views, height, width, channels) -> (batch, views, channels, height, width)
-    images = images.transpose((0, 1, 4, 2, 3)).astype(np.float32)
+    images = images.transpose((0, 1, 4, 2, 3)).astype(cp.float32)
 
     # Sample number of views
     total_views = images.shape[1]
@@ -70,7 +70,7 @@ def estimate_ELBO(xp, query_images, z_t_param_array, pixel_mean,
 
     # Negative log-likelihood of generated image
     batch_size = query_images.shape[0]
-    num_pixels_per_batch = np.prod(query_images.shape[1:])
+    num_pixels_per_batch =cp.prod(query_images.shape[1:])
     normal = chainer.distributions.Normal(
         query_images, log_scale=xp.array(pixel_log_sigma))
     
@@ -82,7 +82,7 @@ def estimate_ELBO(xp, query_images, z_t_param_array, pixel_mean,
 
     # https://arxiv.org/abs/1604.08772 Section.2
     # https://www.reddit.com/r/MachineLearning/comments/56m5o2/discussion_calculation_of_bitsdims/
-    bits_per_pixel = -(ELBO / num_pixels_per_batch - np.log(256)) / np.log(
+    bits_per_pixel = -(ELBO / num_pixels_per_batch - cp.log(256)) / cp.log(
         2)
 
     return ELBO, bits_per_pixel, negative_log_likelihood, kl_divergence
@@ -351,4 +351,3 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
                 nccl_data_type = _get_nccl_data_type(gp.dtype)
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type,
                                 0, null_stream.ptr)
-                                
