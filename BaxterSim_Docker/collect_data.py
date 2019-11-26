@@ -110,11 +110,29 @@ class RotateArm(object):
         return rad
 
     def get_viewpoint(self):
+        # directly from arm pose
         pose = self._limb.endpoint_pose()
         # get [x,y,z,sin(yaw),cos(yaw),sin(pitch),cos(pitch)]
+        # obj_xyz = Pose(position=Point(0.6, 0.2, 0.8))
         r, p, y = tf.transformations.euler_from_quaternion([pose['orientation'].w,pose['orientation'].x,pose['orientation'].y,pose['orientation'].z],axes='sxyz')
         viewpoint = np.array([pose['position'].x,pose['position'].y,pose['position'].z,np.sin(y),np.cos(y),np.sin(p),np.cos(p)])
 
+        return viewpoint
+
+    def viewpoint_from_current_step(self, x, y, z, total_steps, step, layer):
+        yaw_steps = (2*np.pi)/total_steps
+        yaw = 0 + step*yaw_steps
+        
+        if layer == 'bot':
+            pitch = 0
+            viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
+        elif layer == 'mid':
+            pitch = np.pi/6
+            viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
+        elif layer == 'top':
+            pitch = np.arcsin(3/4)
+            viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
+        
         return viewpoint
 
     def rotate_arm(self, radius, steps, object_name):
@@ -137,7 +155,8 @@ class RotateArm(object):
         rotate.orientation.y = current_pose['orientation'].y 
         rotate.orientation.z = current_pose['orientation'].z 
         rotate.orientation.w = current_pose['orientation'].w 
-    
+
+        # at the very start, cam_viewpoint = [x=0,y=0,z=0,sin(yaw),cos(yaw),sin(pitch),sin(pitch)]
         ## Rotate
         step_value = radius/steps
         circle_x = np.arange(-radius,radius+step_value, step=step_value)
@@ -153,11 +172,10 @@ class RotateArm(object):
                 circle_shift_x[i] = circle_x[i+1] - circle_x[i]    
         circle_shift_yp = self.calc_shift_y(circle_x,radius)
         rotate.orientation.x=0
-        # self.get_data(rotate)
 
         ## Save params ##
         object_name = object_name
-        directory = "/home/baxter_ws/images/"+object_name+"/"
+        directory = "/home/baxter_ws/images64x64/"+object_name+"/"
         if os.path.exists(directory):
             pass
         else:
@@ -168,8 +186,10 @@ class RotateArm(object):
         ##############################
         ### Algorithm for rotation ###
         ##############################
+        x, y, z = 0.0, 0.0, 0.0
         rotate.position.z -= 0.3
         rotate.position.x -= radius
+        x -= radius
     
         joint_angles = self.get_joint_angles(rotate)
         self._guarded_move_to_joint_position(joint_angles)
@@ -195,11 +215,17 @@ class RotateArm(object):
                 if im.snap_flag == False:
                     file_number += 1
                     break
-        viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        step = 0
+        total_steps = move_steps*2-2
+        layer = 'bot'
+        viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
 
         for j in range(move_steps-1):
             rotate.position.x += circle_shift_x[j]
             rotate.position.y += circle_shift_yp[j]
+            x += circle_shift_x[j]
+            y += circle_shift_yp[j]
             
             quaternion_z = [0,0,np.sin(z_rotation_step/2),np.cos(z_rotation_step/2)]
             quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_z)
@@ -219,13 +245,17 @@ class RotateArm(object):
                     if im.snap_flag == False:
                         file_number += 1
                         break
-            viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
-        # ipdb.set_trace()
+            step+=1
+            viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+            # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        
         print("rotate second half")
         
         for j in range(move_steps-1):
             rotate.position.x -= circle_shift_x[j]
             rotate.position.y -= circle_shift_yp[j]
+            x -= circle_shift_x[j]
+            y -= circle_shift_yp[j]
 
             quaternion_z = [0,0,np.sin(z_rotation_step/2),np.cos(z_rotation_step/2)]
             quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_z)
@@ -245,7 +275,9 @@ class RotateArm(object):
                     if im.snap_flag == False:
                         file_number += 1
                         break
-            viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+            step+=1
+            viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+            #  viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
         # # # # # # # # # # # # # # # # # # # # # # # # #
         ### ### ### ### Middle layer of Dome ### ### ###                                #### MIDDLE ####
@@ -265,6 +297,8 @@ class RotateArm(object):
         circle_shift_yp = self.calc_shift_y(circle_x,new_rad)
         rotate.position.z += height # elevate
         rotate.position.x += (radius-new_rad)
+        z += height
+        x = 0 - new_rad
         joint_angles = self.get_joint_angles(rotate)
         self._guarded_move_to_joint_position(joint_angles)
         
@@ -295,13 +329,20 @@ class RotateArm(object):
                 if im.snap_flag == False:
                     file_number += 1
                     break
-        viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        
+        step = 0
+        total_steps = move_steps-2
+        layer = 'mid'
+        viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+        # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
         print("rotate upper first half",rotate.orientation)
 
         for j in range(move_steps-1):
             rotate.position.x += circle_shift_x[j]
             rotate.position.y += circle_shift_yp[j]
+            x += circle_shift_x[j]
+            y += circle_shift_yp[j]
             quaternion_z = [0,0,np.sin((z_rotation_step*(j+1))/2),np.cos(z_rotation_step*(j+1)/2)]
             quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
             quaternion_tmp = quaternion_res
@@ -322,12 +363,17 @@ class RotateArm(object):
                         if im.snap_flag == False:
                             file_number += 1
                             break
-                viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+                
+                step+=2
+                viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+                # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
         print("rotate upper second half")
         for j in range(move_steps-1):
             rotate.position.x -= circle_shift_x[j]
             rotate.position.y -= circle_shift_yp[j]
+            x -= circle_shift_x[j]
+            y -= circle_shift_yp[j]
             quaternion_z = [0,0,np.sin((z_rotation_step*(move_steps+j))/2),np.cos((z_rotation_step*(move_steps+j))/2)]
             quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
             quaternion_tmp = quaternion_res
@@ -347,7 +393,10 @@ class RotateArm(object):
                         if im.snap_flag == False:
                             file_number += 1
                             break
-                viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+                
+                step+=2
+                viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+                # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
         # # # # # # # # # # # # # # # # # # # # # # # # #
         ### ### ### ### Top layer of Dome ### ### ###                                #### TOP ####
@@ -367,6 +416,8 @@ class RotateArm(object):
         circle_shift_yp = self.calc_shift_y(circle_x,new_rad)
         rotate.position.z += radius*0.25 # elevate
         rotate.position.x += (radius-new_rad)
+        z += radius*0.25
+        x = 0 - new_rad
         joint_angles = self.get_joint_angles(rotate)
         self._guarded_move_to_joint_position(joint_angles)
         
@@ -398,13 +449,20 @@ class RotateArm(object):
                 if im.snap_flag == False:
                     file_number += 1
                     break
-        viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        
+        step = 0
+        total_steps = move_steps-2
+        layer = 'top'
+        viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+        # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
         print("top layer first half",rotate.orientation)
 
         for j in range(move_steps-1):
             rotate.position.x += circle_shift_x[j]
             rotate.position.y += circle_shift_yp[j]
+            x += circle_shift_x[j]
+            y += circle_shift_yp[j]
             quaternion_z = [0,0,np.sin((z_rotation_step*(j+1))/2),np.cos(z_rotation_step*(j+1)/2)]
             quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
             quaternion_tmp = quaternion_res
@@ -424,12 +482,17 @@ class RotateArm(object):
                         if im.snap_flag == False:
                             file_number += 1
                             break
-                viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+                
+                step+=2
+                viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+                # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
         print("top layer second half")
         for j in range(move_steps-1):
             rotate.position.x -= circle_shift_x[j]
             rotate.position.y -= circle_shift_yp[j]
+            x -= circle_shift_x[j]
+            y -= circle_shift_yp[j]
             quaternion_z = [0,0,np.sin((z_rotation_step*(move_steps+j))/2),np.cos((z_rotation_step*(move_steps+j))/2)]
             quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
             quaternion_tmp = quaternion_res
@@ -449,7 +512,10 @@ class RotateArm(object):
                         if im.snap_flag == False:
                             file_number += 1
                             break
-                viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+                
+                step+=2
+                viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+                # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
         np.save(directory+"viewpoints.npy",viewpoints)
 
