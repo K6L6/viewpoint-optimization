@@ -15,6 +15,7 @@ from chainer.training import extensions
 from multi_process_updater import *
 import chainerx
 import logging
+import h5py
 from train_mGPU_extensions import AnnealLearningRate, Validation
 
 import gqn
@@ -50,7 +51,7 @@ def main():
     #==============================================================================
     # Dataset
     #==============================================================================
-    def read_files(directory):
+    def read_npy_files(directory):
         filenames = []
         files = os.listdir(os.path.join(directory, "images"))
         for filename in files:
@@ -80,7 +81,37 @@ def main():
         
         return dataset
 
+    def read_files(directory):
+        filenames = []
+        files = os.listdir(directory)
+        
+        for filename in files:
+            if filename.endswith(".h5"):
+                filenames.append(filename)
+        filenames.sort()
+        
+        dataset_images = []
+        dataset_viewpoints = []
+        for i in range(len(filenames)):
+            F = h5py.File(os.path.join(directory,filenames[i]))
+            tmp_images = list(F["images"])
+            tmp_viewpoints = list(F["viewpoints"])
+            
+            dataset_images.extend(tmp_images)
+            dataset_viewpoints.extend(tmp_viewpoints)
+        
+        dataset_images = np.array(dataset_images)
+        dataset_viewpoints = np.array(dataset_viewpoints)
+
+        dataset = list()
+        for i in range(len(dataset_images)):
+            item = {'image':dataset_images[i],'viewpoint':dataset_viewpoints[i]}
+            dataset.append(item)
+        
+        return dataset
+    
     dataset_train = read_files(args.train_dataset_directory)
+    # ipdb.set_trace()
     if args.test_dataset_directory is not None:
         dataset_test = read_files(args.test_dataset_directory)
     

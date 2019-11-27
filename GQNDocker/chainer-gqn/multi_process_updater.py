@@ -5,7 +5,7 @@ import math
 import chainer
 from chainer import reporter
 import random
-# import numpy as np
+import numpy as np
 import cupy as cp
 import logging
 import ipdb
@@ -70,7 +70,7 @@ def estimate_ELBO(xp, query_images, z_t_param_array, pixel_mean,
 
     # Negative log-likelihood of generated image
     batch_size = query_images.shape[0]
-    num_pixels_per_batch =cp.prod(query_images.shape[1:])
+    num_pixels_per_batch =np.prod(query_images.shape[1:])
     normal = chainer.distributions.Normal(
         query_images, log_scale=xp.array(pixel_log_sigma))
     
@@ -346,6 +346,15 @@ class CustomParallelUpdater(updaters.MultiprocessParallelUpdater):
                 del gg
 
             optimizer.update()
+            with chainer.no_backprop_mode():
+                mean_squared_error = cf.mean_squared_error(
+                    query_images, pixel_mean)
+            reporter.report({'loss': float(loss.data), 
+                            'bits_per_pixel':float(bits_per_pixel.data), 
+                            'NLL':float(negative_log_likelihood.data),
+                            'MSE':float(mean_squared_error.data)},
+                            model)
+            
             if self.comm is not None:
                 gp = gather_params(model)
                 nccl_data_type = _get_nccl_data_type(gp.dtype)

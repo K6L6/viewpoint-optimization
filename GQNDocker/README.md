@@ -208,7 +208,25 @@ Epoch 1500 done in 0.703 min
 ```python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/rooms_free_camera_with_object_rotations_npy/train_20npy/ --test-dataset-directory /GQN/gqn-datasets/rooms_free_camera_with_object_rotations_npy/test_1/ --snapshot-directory ./snapshots/6_roomswrotation_d20npy_b30_e300_gs12test --log-directory ./log/6_roomswrotation_d20npy_b30_e300_gs12test --batch-size 30 --epochs 300 --ngpu 1```
 approx 6 days, due to saving the model every epoch.
 
+```python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset8pf128x128/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset8pf128x128/validation/ --snapshot-directory ./snapshots/5_gazebomgpu_d128_b5_e2000_im128_gs12test --log-directory ./log/5_gazebomgpu_d128_b5_e2000_im128_gs12test --image-size 128 --batch-size 5 --epochs 2000 --ngpu 2```
 
+52547.9 seconds
+
+```python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64/validation/ --snapshot-directory ./snapshots/5_gazebo_d128_b5_e2000_im64_gs12 --log-directory ./log/5_gazebo_d128_b5_e2000_im64_gs12 --image-size 64 --batch-size 5 --epochs 2000 --ngpu 2```
+
+"main/loss": 19811.805930397728,  
+"main/bits_per_pixel": 10.326041264967484,  
+"main/NLL": 19811.39728338068,  
+"main/MSE": 0.001357169935627925,  
+"validation/main/ELBO": -19814.68359375,  
+"validation/main/bits_per_pixel": 10.32637882232666,  
+"validation/main/NLL": 19814.251953125,  
+"validation/main/KLD": 0.43155360221862793,  
+"validation/main/MSE": 0.0032151879277080297,  
+"epoch": 2000,  
+"iteration": 44800,  
+"elapsed_time": 26727.539966840297  
+  
 ### data list creation
 ```ls ./gqn-datasets/shepard_metzler_5_npy/test/images/*.npy | head -n 50 > testi.list```
 ```less testi.list``` 

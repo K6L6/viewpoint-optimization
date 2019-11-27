@@ -3,6 +3,7 @@ import ipdb
 import chainer
 import numpy as np
 import chainer.functions as cf
+import pandas as pd
 
 from chainer.training.extensions import Evaluator
 
@@ -106,3 +107,4 @@ class Validation(Evaluator):
             #                 'MSE':float(mean_squared_error.data)
             #                 })
         return summary.compute_mean()
+    
