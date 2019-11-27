@@ -15,7 +15,7 @@ import cupy as cp
 import numpy as np
 from chainer.backends import cuda
 
-sys.path.append(".")
+sys.path.append("./../../")
 import gqn
 from gqn.preprocessing import make_uint8, preprocess_images
 from model_chain import Model

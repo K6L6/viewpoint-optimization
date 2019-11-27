@@ -121,16 +121,19 @@ class RotateArm(object):
 
     def viewpoint_from_current_step(self, x, y, z, total_steps, step, layer):
         yaw_steps = (2*np.pi)/total_steps
-        yaw = 0 + step*yaw_steps
+        yaw = step*yaw_steps
         
         if layer == 'bot':
             pitch = 0
+            print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
             viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
         elif layer == 'mid':
             pitch = np.pi/6
+            print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
             viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
         elif layer == 'top':
             pitch = np.arcsin(3/4)
+            print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
             viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
         
         return viewpoint
@@ -217,8 +220,9 @@ class RotateArm(object):
                     break
         # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         step = 0
-        total_steps = move_steps*2-2
+        total_steps = (move_steps-1)*2
         layer = 'bot'
+        print("x,y,z: "+str(x)+","+str(y)+","+str(z))
         viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
 
         for j in range(move_steps-1):
@@ -331,8 +335,9 @@ class RotateArm(object):
                     break
         
         step = 0
-        total_steps = move_steps-2
+        total_steps = (move_steps-1)*2
         layer = 'mid'
+        print("x,y,z: "+str(x)+","+str(y)+","+str(z))
         viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
         # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
@@ -352,6 +357,7 @@ class RotateArm(object):
             rotate.orientation.y = quaternion_res[1]
             rotate.orientation.z = quaternion_res[2]
             if j%2==0:
+                
                 joint_angles = self.get_joint_angles(rotate)
                 self._guarded_move_to_joint_position(joint_angles)
 
@@ -364,7 +370,7 @@ class RotateArm(object):
                             file_number += 1
                             break
                 
-                step+=2
+                step=j+1
                 viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
                 # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
@@ -394,7 +400,7 @@ class RotateArm(object):
                             file_number += 1
                             break
                 
-                step+=2
+                step=j+5
                 viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
                 # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
@@ -451,8 +457,9 @@ class RotateArm(object):
                     break
         
         step = 0
-        total_steps = move_steps-2
+        total_steps = (move_steps-1)*2
         layer = 'top'
+        print("x,y,z: "+str(x)+","+str(y)+","+str(z))
         viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
         # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
@@ -483,7 +490,7 @@ class RotateArm(object):
                             file_number += 1
                             break
                 
-                step+=2
+                step=j+1
                 viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
                 # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
@@ -513,7 +520,7 @@ class RotateArm(object):
                             file_number += 1
                             break
                 
-                step+=2
+                step=j+5
                 viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
                 # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
