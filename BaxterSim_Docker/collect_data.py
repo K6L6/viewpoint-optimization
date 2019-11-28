@@ -178,7 +178,7 @@ class RotateArm(object):
 
         ## Save params ##
         object_name = object_name
-        directory = "/home/baxter_ws/images64x64/"+object_name+"/"
+        directory = "/home/baxter_ws/images128x128/"+object_name+"/"
         if os.path.exists(directory):
             pass
         else:

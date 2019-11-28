@@ -223,7 +223,7 @@ def main():
     if ngpu>1:
 
         train_iters = [
-            chainer.iterators.MultiprocessIterator(dataset_train, args.batch_size, n_processes=args.number_processes) for i in chainer.datasets.split_dataset_n_random(dataset_train, len(devices))
+            chainer.iterators.MultiprocessIterator(dataset_train, args.batch_size, n_processes=args.number_processes, order_sampler=chainer.iterators.ShuffleOrderSampler()) for i in chainer.datasets.split_dataset_n_random(dataset_train, len(devices))
         ]
         updater = CustomParallelUpdater(train_iters, optimizer, devices, converter=chainer.dataset.concat_examples, pixel_log_sigma=pixel_log_sigma)
     
