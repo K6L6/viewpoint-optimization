@@ -5,19 +5,19 @@ Next suitable viewpoint will be selected by the hill climbing algorithm, which w
 
 ## Project Progress
 * [x] Prelimenary experiments
-    1. [x]Observation of variance in predictions
-    2. [x]Observation of variance in representation vector
-    3. [x]Observation of mean squared error of predictions
+    1. [x] Observation of variance in predictions
+    2. [x] Observation of variance in representation vector
+    3. [x] Observation of mean squared error of predictions
 * [x] Setup for data collection
-    1. [x]Docker container for Gazebo simulator
-    2. [x]Motion generation with Baxter simulator
-    3. [x]Data collection of images and viewpoints of 3D objects
-    4. [x]Without domain randomization
-    5. [ ]Apply domain randomization :snail:
+    1. [x] Docker container for Gazebo simulator
+    2. [x] Motion generation with Baxter simulator
+    3. [x] Data collection of images and viewpoints of 3D objects
+    4. [x] Without domain randomization
+    5. [ ] Apply domain randomization :snail:
 * [ ] Train GQN to recognize uncertainty from simulator dataset (in progress)
-    1. [x]Reconstruct GQN code to support Chainer API [iterators, trainer, extensions, etc.]
-    2. [x]Reconstruct GQN code to support single node multi-GPU training (in progress)
-    3. [ ]Obtain reasonable predictions from trained model, to begin experiments
+    1. [x] Reconstruct GQN code to support Chainer API [iterators, trainer, extensions, etc.]
+    2. [x] Reconstruct GQN code to support single node multi-GPU training (in progress)
+    3. [ ] Obtain reasonable predictions from trained model, to begin experiments
 * [ ] Apply trained GQN to move Baxter arm for viewpoint optimization
 * [ ] Train the neural network to move task arm regardless of observed viewpoint
 * [ ] Perform grasping task
