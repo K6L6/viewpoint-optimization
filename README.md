@@ -50,6 +50,9 @@ create the container from GQN docker image:
 nvidia-docker run -it --name [name of container] -v [local/directory/of/gqn/repo]:[container/directory/of/gqn/repo] -v [local/directory/of/dataset]:[container/directory/of/dataset] [docker-image name]
 ```  
   
+conda environment needs to be activated to access libraries
+```. /miniconda/bin/activate```
+  
 ### Baxter Simulator Docker Usage
 This Docker image uses a VNC method to provide a display for the Gazebo simulator while running the container.  
 This repository was used as a reference to build this image: https://github.com/fcwu/docker-ubuntu-vnc-desktop  
