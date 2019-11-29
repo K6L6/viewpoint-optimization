@@ -4,17 +4,20 @@ This is a method developed to learn optimized viewpoint for robots to perform th
 Next suitable viewpoint will be selected by the hill climbing algorithm, which will search for a viewpoint that shows highest uncertainty in the world model of the agent.
 
 ## Project Progress
-* [x] Observation of variance in predictions
-* [x] Observation of variance in representation vector
-* [x] Observation of mean squared error of predictions
-* [x] Docker container for Gazebo simulator
-* [x] Motion generation with Baxter simulator
-* [ ] Data collection of images and viewpoints of 3D objects (in progress)
-    1. [x] Without domain randomization
-    2. [ ] Apply domain randomization :snail:
+* [x] Prelimenary experiments
+    1. [x] Observation of variance in predictions
+    2. [x] Observation of variance in representation vector
+    3. [x] Observation of mean squared error of predictions
+* [x] Setup for data collection
+    1. [x]Docker container for Gazebo simulator
+    2. [x] Motion generation with Baxter simulator
+    3. [x] Data collection of images and viewpoints of 3D objects
+    4. [x] Without domain randomization
+    5. [ ] Apply domain randomization :snail:
 * [ ] Train GQN to recognize uncertainty from simulator dataset (in progress)
     1. [x] Reconstruct GQN code to support Chainer API [iterators, trainer, extensions, etc.]
     2. [x] Reconstruct GQN code to support single node multi-GPU training (in progress)
+    3. [ ] Obtain reasonable predictions from trained model, to begin experiments
 * [ ] Apply trained GQN to move Baxter arm for viewpoint optimization
 * [ ] Train the neural network to move task arm regardless of observed viewpoint
 * [ ] Perform grasping task
@@ -108,7 +111,10 @@ the browser should load the desktop below:
 
 Simulator dataset with Baxter and 3DGEMS dataset (size will be increased by domain randomization) :soon:  
 ### Simulator Dataset ###
-Training only with simulator dataset for 1000 epochs takes approx 10 hours with 1 GPU.    
+Training with 0.002% of GQN's rooms_free_camera dataset for 100 epochs takes approx 1 day with 1 GPU.  
+Training with dataset synthesized from simulator takes approx a little more than 3 hours for 1000 epochs.  
+Image size seems to be directly proportional to training time.  
+  
 Rendering of a **thin green book**.  
 [![link](/result_example/sim_dataset_render_1.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)  
   
