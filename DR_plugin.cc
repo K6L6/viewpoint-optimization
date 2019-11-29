@@ -1,5 +1,5 @@
 // Domain Randomization Plugin for Gazebo
-#include <gazebo/gazebo.hh>
+#include <DR_plugin.hh>
 
 namespace gazebo
 {

@@ -210,7 +210,7 @@ approx 6 days, due to saving the model every epoch.
 
 ```python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset8pf128x128/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset8pf128x128/validation/ --snapshot-directory ./snapshots/5_gazebomgpu_d128_b5_e2000_im128_gs12test --log-directory ./log/5_gazebomgpu_d128_b5_e2000_im128_gs12test --image-size 128 --batch-size 5 --epochs 2000 --ngpu 2```
 
-52547.9 seconds
+52547.9 seconds (14hours 35min)  
 
 ```python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64/validation/ --snapshot-directory ./snapshots/5_gazebo_d128_b5_e2000_im64_gs12 --log-directory ./log/5_gazebo_d128_b5_e2000_im64_gs12 --image-size 64 --batch-size 5 --epochs 2000 --ngpu 2```
 
@@ -225,7 +225,22 @@ approx 6 days, due to saving the model every epoch.
 "validation/main/MSE": 0.0027262240182608366,  
 "epoch": 2000,  
 "iteration": 44800,  
-"elapsed_time": 26470.47290384583  
+"elapsed_time": 26470.47290384583 (7hours 21min)   
+
+```python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64/validation/ --snapshot-directory ./snapshots/5_gazebo_d128_b5_e5000_im64_gs12 --log-directory ./log/5_gazebo_d128_b5_e5000_im64_gs12 --image-size 64 --batch-size 5 --epochs 5000 --ngpu 2```
+
+"main/loss": 19810.5703125,  
+"main/bits_per_pixel": 10.325896219773727,  
+"main/NLL": 19810.417613636364,  
+"main/MSE": 0.0007189067949763161,  
+"validation/main/ELBO": -19817.0703125,  
+"validation/main/bits_per_pixel": 10.326659202575684,  
+"validation/main/NLL": 19816.861328125,  
+"validation/main/KLD": 0.2081449329853058,  
+"validation/main/MSE": 0.0049134804867208,  
+"epoch": 5000,  
+"iteration": 112000,  
+"elapsed_time": 64022.753862868994 (17hours 47min)  
   
 ### data list creation
 ```ls ./gqn-datasets/shepard_metzler_5_npy/test/images/*.npy | head -n 50 > testi.list```
