@@ -161,24 +161,28 @@ class RotateArm(object):
 
         # at the very start, cam_viewpoint = [x=0,y=0,z=0,sin(yaw),cos(yaw),sin(pitch),sin(pitch)]
         ## Rotate
-        step_value = radius/steps
+        # steps = rotation_steps
+        # if steps=8, step_value=(radius*2)/(steps/2)
+        step_value = (radius*2)/(steps/2)
         circle_x = np.arange(-radius,radius+step_value, step=step_value)
         move_steps = len(circle_x)
+        
         circle_yp = np.zeros(move_steps)
         circle_shift_yp = np.zeros(move_steps)
         circle_shift_x = np.zeros(move_steps)
-        wrist_twist = 3.059/move_steps # value obtained from baxter hardware specifications for w2
+        # wrist_twist = 3.059/move_steps # value obtained from baxter hardware specifications for w2
         for i in range(move_steps):
             if (i+1)==move_steps:
                 break
             else:    
                 circle_shift_x[i] = circle_x[i+1] - circle_x[i]    
         circle_shift_yp = self.calc_shift_y(circle_x,radius)
+        print("half of total steps is ",len(circle_shift_x))
         rotate.orientation.x=0
 
         ## Save params ##
         object_name = object_name
-        directory = "/home/baxter_ws/images128x128/"+object_name+"/"
+        directory = "/home/baxter_ws/images64x64_bottom_only/"+object_name+"/"
         if os.path.exists(directory):
             pass
         else:
@@ -197,7 +201,7 @@ class RotateArm(object):
         joint_angles = self.get_joint_angles(rotate)
         self._guarded_move_to_joint_position(joint_angles)
         print("bottom layer start ")
-        z_rotation_step = (2*np.pi)/(4*steps)    
+        z_rotation_step = (2*np.pi)/steps    
         
         quaternion_00 = [rotate.orientation.x, rotate.orientation.y, rotate.orientation.z, rotate.orientation.w]
         quaternion_res = quaternion_00
@@ -285,244 +289,244 @@ class RotateArm(object):
 
         # # # # # # # # # # # # # # # # # # # # # # # # #
         ### ### ### ### Middle layer of Dome ### ### ###                                #### MIDDLE ####
-        print("centering")
-        self._guarded_move_to_joint_position(starting_joint_angles)
+        # print("centering")
+        # self._guarded_move_to_joint_position(starting_joint_angles)
         
-        print("elevate")
-        height = radius*0.5
-        new_rad = np.sqrt(radius**2-height**2)
-        step_value = new_rad/steps
-        circle_x = np.arange(-new_rad,new_rad+step_value, step=step_value)
-        for i in range(move_steps):
-            if (i+1)==move_steps:
-                break
-            else:    
-                circle_shift_x[i] = circle_x[i+1] - circle_x[i]
-        circle_shift_yp = self.calc_shift_y(circle_x,new_rad)
-        rotate.position.z += height # elevate
-        rotate.position.x += (radius-new_rad)
-        z += height
-        x = 0 - new_rad
-        joint_angles = self.get_joint_angles(rotate)
-        self._guarded_move_to_joint_position(joint_angles)
+        # print("elevate")
+        # height = radius*0.5
+        # new_rad = np.sqrt(radius**2-height**2)
+        # step_value = (new_rad*2)/(steps/2)
+        # circle_x = np.arange(-new_rad,new_rad+step_value, step=step_value)
+        # for i in range(move_steps):
+        #     if (i+1)==move_steps:
+        #         break
+        #     else:    
+        #         circle_shift_x[i] = circle_x[i+1] - circle_x[i]
+        # circle_shift_yp = self.calc_shift_y(circle_x,new_rad)
+        # rotate.position.z += height # elevate
+        # rotate.position.x += (radius-new_rad)
+        # z += height
+        # x = 0 - new_rad
+        # joint_angles = self.get_joint_angles(rotate)
+        # self._guarded_move_to_joint_position(joint_angles)
         
-        print("mid layer start ")
-        theta = np.pi/6 # elevation angle
+        # print("mid layer start ")
+        # theta = np.pi/6 # elevation angle
 
-        rotate.orientation.w = quaternion_00[3]
-        rotate.orientation.x = quaternion_00[0]
-        rotate.orientation.y = quaternion_00[1]
-        rotate.orientation.z = quaternion_00[2]
-        joint_angles = self.get_joint_angles(rotate)
-        self._guarded_move_to_joint_position(joint_angles)
+        # rotate.orientation.w = quaternion_00[3]
+        # rotate.orientation.x = quaternion_00[0]
+        # rotate.orientation.y = quaternion_00[1]
+        # rotate.orientation.z = quaternion_00[2]
+        # joint_angles = self.get_joint_angles(rotate)
+        # self._guarded_move_to_joint_position(joint_angles)
 
-        quaternion_y = [0,np.sin(theta/2),0,np.cos(theta/2)]
-        quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_y)
-        rotate.orientation.w = quaternion_res[3]
-        rotate.orientation.x = quaternion_res[0]
-        rotate.orientation.y = quaternion_res[1]
-        rotate.orientation.z = quaternion_res[2]
-        joint_angles = self.get_joint_angles(rotate)
-        self._guarded_move_to_joint_position(joint_angles)
+        # quaternion_y = [0,np.sin(theta/2),0,np.cos(theta/2)]
+        # quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_y)
+        # rotate.orientation.w = quaternion_res[3]
+        # rotate.orientation.x = quaternion_res[0]
+        # rotate.orientation.y = quaternion_res[1]
+        # rotate.orientation.z = quaternion_res[2]
+        # joint_angles = self.get_joint_angles(rotate)
+        # self._guarded_move_to_joint_position(joint_angles)
 
-        im.file_number = file_number
-        last_saved_file_number = im.last_saved_file_number
-        im.snap_flag = True
-        while(True):
-            if im.last_saved_file_number == file_number:
-                if im.snap_flag == False:
-                    file_number += 1
-                    break
+        # im.file_number = file_number
+        # last_saved_file_number = im.last_saved_file_number
+        # im.snap_flag = True
+        # while(True):
+        #     if im.last_saved_file_number == file_number:
+        #         if im.snap_flag == False:
+        #             file_number += 1
+        #             break
         
-        step = 0
-        total_steps = (move_steps-1)*2
-        layer = 'mid'
-        print("x,y,z: "+str(x)+","+str(y)+","+str(z))
-        viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
-        # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        # step = 0
+        # total_steps = (move_steps-1)*2
+        # layer = 'mid'
+        # print("x,y,z: "+str(x)+","+str(y)+","+str(z))
+        # viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+        # # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
-        print("rotate upper first half",rotate.orientation)
+        # print("rotate upper first half",rotate.orientation)
 
-        for j in range(move_steps-1):
-            rotate.position.x += circle_shift_x[j]
-            rotate.position.y += circle_shift_yp[j]
-            x += circle_shift_x[j]
-            y += circle_shift_yp[j]
-            quaternion_z = [0,0,np.sin((z_rotation_step*(j+1))/2),np.cos(z_rotation_step*(j+1)/2)]
-            quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
-            quaternion_tmp = quaternion_res
-            quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_y)
-            rotate.orientation.w = quaternion_res[3]
-            rotate.orientation.x = quaternion_res[0]
-            rotate.orientation.y = quaternion_res[1]
-            rotate.orientation.z = quaternion_res[2]
-            if j%2==0:
+        # for j in range(move_steps-1):
+        #     rotate.position.x += circle_shift_x[j]
+        #     rotate.position.y += circle_shift_yp[j]
+        #     x += circle_shift_x[j]
+        #     y += circle_shift_yp[j]
+        #     quaternion_z = [0,0,np.sin((z_rotation_step*(j+1))/2),np.cos(z_rotation_step*(j+1)/2)]
+        #     quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
+        #     quaternion_tmp = quaternion_res
+        #     quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_y)
+        #     rotate.orientation.w = quaternion_res[3]
+        #     rotate.orientation.x = quaternion_res[0]
+        #     rotate.orientation.y = quaternion_res[1]
+        #     rotate.orientation.z = quaternion_res[2]
+        #     if j%2==0:
                 
-                joint_angles = self.get_joint_angles(rotate)
-                self._guarded_move_to_joint_position(joint_angles)
+        #         joint_angles = self.get_joint_angles(rotate)
+        #         self._guarded_move_to_joint_position(joint_angles)
 
-                im.file_number = file_number
-                last_saved_file_number = im.last_saved_file_number
-                im.snap_flag = True
-                while(True):
-                    if im.last_saved_file_number == file_number:
-                        if im.snap_flag == False:
-                            file_number += 1
-                            break
+        #         im.file_number = file_number
+        #         last_saved_file_number = im.last_saved_file_number
+        #         im.snap_flag = True
+        #         while(True):
+        #             if im.last_saved_file_number == file_number:
+        #                 if im.snap_flag == False:
+        #                     file_number += 1
+        #                     break
                 
-                step=j+1
-                viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
-                # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        #         step=j+1
+        #         viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+        #         # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
-        print("rotate upper second half")
-        for j in range(move_steps-1):
-            rotate.position.x -= circle_shift_x[j]
-            rotate.position.y -= circle_shift_yp[j]
-            x -= circle_shift_x[j]
-            y -= circle_shift_yp[j]
-            quaternion_z = [0,0,np.sin((z_rotation_step*(move_steps+j))/2),np.cos((z_rotation_step*(move_steps+j))/2)]
-            quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
-            quaternion_tmp = quaternion_res
-            quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_y)
-            rotate.orientation.w = quaternion_res[3]
-            rotate.orientation.x = quaternion_res[0]
-            rotate.orientation.y = quaternion_res[1]
-            rotate.orientation.z = quaternion_res[2]
-            if j%2==0:
-                joint_angles = self.get_joint_angles(rotate)
-                self._guarded_move_to_joint_position(joint_angles)
-                im.file_number = file_number
-                last_saved_file_number = im.last_saved_file_number
-                im.snap_flag = True
-                while(True):
-                    if im.last_saved_file_number == file_number:
-                        if im.snap_flag == False:
-                            file_number += 1
-                            break
+        # print("rotate upper second half")
+        # for j in range(move_steps-1):
+        #     rotate.position.x -= circle_shift_x[j]
+        #     rotate.position.y -= circle_shift_yp[j]
+        #     x -= circle_shift_x[j]
+        #     y -= circle_shift_yp[j]
+        #     quaternion_z = [0,0,np.sin((z_rotation_step*(move_steps+j))/2),np.cos((z_rotation_step*(move_steps+j))/2)]
+        #     quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
+        #     quaternion_tmp = quaternion_res
+        #     quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_y)
+        #     rotate.orientation.w = quaternion_res[3]
+        #     rotate.orientation.x = quaternion_res[0]
+        #     rotate.orientation.y = quaternion_res[1]
+        #     rotate.orientation.z = quaternion_res[2]
+        #     if j%2==0:
+        #         joint_angles = self.get_joint_angles(rotate)
+        #         self._guarded_move_to_joint_position(joint_angles)
+        #         im.file_number = file_number
+        #         last_saved_file_number = im.last_saved_file_number
+        #         im.snap_flag = True
+        #         while(True):
+        #             if im.last_saved_file_number == file_number:
+        #                 if im.snap_flag == False:
+        #                     file_number += 1
+        #                     break
                 
-                step=j+5
-                viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
-                # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        #         step=j+5
+        #         viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+        #         # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
-        # # # # # # # # # # # # # # # # # # # # # # # # #
-        ### ### ### ### Top layer of Dome ### ### ###                                #### TOP ####
-        print("centering")
-        self._guarded_move_to_joint_position(starting_joint_angles)
+        # # # # # # # # # # # # # # # # # # # # # # # # # #
+        # ### ### ### ### Top layer of Dome ### ### ###                                #### TOP ####
+        # print("centering")
+        # self._guarded_move_to_joint_position(starting_joint_angles)
         
-        print("elevate")
-        height = radius*0.75
-        new_rad = np.sqrt(radius**2-height**2)
-        step_value = new_rad/steps
-        circle_x = np.arange(-new_rad,new_rad+step_value, step=step_value)
-        for i in range(move_steps):
-            if (i+1)==move_steps:
-                break
-            else:    
-                circle_shift_x[i] = circle_x[i+1] - circle_x[i]
-        circle_shift_yp = self.calc_shift_y(circle_x,new_rad)
-        rotate.position.z += radius*0.25 # elevate
-        rotate.position.x += (radius-new_rad)
-        z += radius*0.25
-        x = 0 - new_rad
-        joint_angles = self.get_joint_angles(rotate)
-        self._guarded_move_to_joint_position(joint_angles)
+        # print("elevate")
+        # height = radius*0.75
+        # new_rad = np.sqrt(radius**2-height**2)
+        # step_value = (new_rad*2)/(steps/2)
+        # circle_x = np.arange(-new_rad,new_rad+step_value, step=step_value)
+        # for i in range(move_steps):
+        #     if (i+1)==move_steps:
+        #         break
+        #     else:    
+        #         circle_shift_x[i] = circle_x[i+1] - circle_x[i]
+        # circle_shift_yp = self.calc_shift_y(circle_x,new_rad)
+        # rotate.position.z += radius*0.25 # elevate
+        # rotate.position.x += (radius-new_rad)
+        # z += radius*0.25
+        # x = 0 - new_rad
+        # joint_angles = self.get_joint_angles(rotate)
+        # self._guarded_move_to_joint_position(joint_angles)
         
-        print("top layer start ")
-        theta = np.arcsin(3.0/4.0) # elevation angle
+        # print("top layer start ")
+        # theta = np.arcsin(3.0/4.0) # elevation angle
 
-        rotate.orientation.w = quaternion_00[3]
-        rotate.orientation.x = quaternion_00[0]
-        rotate.orientation.y = quaternion_00[1]
-        rotate.orientation.z = quaternion_00[2]
-        joint_angles = self.get_joint_angles(rotate)
-        self._guarded_move_to_joint_position(joint_angles)
+        # rotate.orientation.w = quaternion_00[3]
+        # rotate.orientation.x = quaternion_00[0]
+        # rotate.orientation.y = quaternion_00[1]
+        # rotate.orientation.z = quaternion_00[2]
+        # joint_angles = self.get_joint_angles(rotate)
+        # self._guarded_move_to_joint_position(joint_angles)
  
-        quaternion_y = [0,np.sin(theta/2),0,np.cos(theta/2)]
-        quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_y)
+        # quaternion_y = [0,np.sin(theta/2),0,np.cos(theta/2)]
+        # quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_y)
        
-        rotate.orientation.w = quaternion_res[3]
-        rotate.orientation.x = quaternion_res[0]
-        rotate.orientation.y = quaternion_res[1]
-        rotate.orientation.z = quaternion_res[2]
-        joint_angles = self.get_joint_angles(rotate)
-        self._guarded_move_to_joint_position(joint_angles)
+        # rotate.orientation.w = quaternion_res[3]
+        # rotate.orientation.x = quaternion_res[0]
+        # rotate.orientation.y = quaternion_res[1]
+        # rotate.orientation.z = quaternion_res[2]
+        # joint_angles = self.get_joint_angles(rotate)
+        # self._guarded_move_to_joint_position(joint_angles)
 
-        im.file_number = file_number
-        last_saved_file_number = im.last_saved_file_number
-        im.snap_flag = True
-        while(True):
-            if im.last_saved_file_number == file_number:
-                if im.snap_flag == False:
-                    file_number += 1
-                    break
+        # im.file_number = file_number
+        # last_saved_file_number = im.last_saved_file_number
+        # im.snap_flag = True
+        # while(True):
+        #     if im.last_saved_file_number == file_number:
+        #         if im.snap_flag == False:
+        #             file_number += 1
+        #             break
         
-        step = 0
-        total_steps = (move_steps-1)*2
-        layer = 'top'
-        print("x,y,z: "+str(x)+","+str(y)+","+str(z))
-        viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
-        # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        # step = 0
+        # total_steps = (move_steps-1)*2
+        # layer = 'top'
+        # print("x,y,z: "+str(x)+","+str(y)+","+str(z))
+        # viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+        # # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
-        print("top layer first half",rotate.orientation)
+        # print("top layer first half",rotate.orientation)
 
-        for j in range(move_steps-1):
-            rotate.position.x += circle_shift_x[j]
-            rotate.position.y += circle_shift_yp[j]
-            x += circle_shift_x[j]
-            y += circle_shift_yp[j]
-            quaternion_z = [0,0,np.sin((z_rotation_step*(j+1))/2),np.cos(z_rotation_step*(j+1)/2)]
-            quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
-            quaternion_tmp = quaternion_res
-            quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_y)
-            rotate.orientation.w = quaternion_res[3]
-            rotate.orientation.x = quaternion_res[0]
-            rotate.orientation.y = quaternion_res[1]
-            rotate.orientation.z = quaternion_res[2]
-            if j%2==0:
-                joint_angles = self.get_joint_angles(rotate)
-                self._guarded_move_to_joint_position(joint_angles)
-                im.file_number = file_number
-                last_saved_file_number = im.last_saved_file_number
-                im.snap_flag = True
-                while(True):
-                    if im.last_saved_file_number == file_number:
-                        if im.snap_flag == False:
-                            file_number += 1
-                            break
+        # for j in range(move_steps-1):
+        #     rotate.position.x += circle_shift_x[j]
+        #     rotate.position.y += circle_shift_yp[j]
+        #     x += circle_shift_x[j]
+        #     y += circle_shift_yp[j]
+        #     quaternion_z = [0,0,np.sin((z_rotation_step*(j+1))/2),np.cos(z_rotation_step*(j+1)/2)]
+        #     quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
+        #     quaternion_tmp = quaternion_res
+        #     quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_y)
+        #     rotate.orientation.w = quaternion_res[3]
+        #     rotate.orientation.x = quaternion_res[0]
+        #     rotate.orientation.y = quaternion_res[1]
+        #     rotate.orientation.z = quaternion_res[2]
+        #     if j%2==0:
+        #         joint_angles = self.get_joint_angles(rotate)
+        #         self._guarded_move_to_joint_position(joint_angles)
+        #         im.file_number = file_number
+        #         last_saved_file_number = im.last_saved_file_number
+        #         im.snap_flag = True
+        #         while(True):
+        #             if im.last_saved_file_number == file_number:
+        #                 if im.snap_flag == False:
+        #                     file_number += 1
+        #                     break
                 
-                step=j+1
-                viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
-                # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        #         step=j+1
+        #         viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+        #         # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
 
-        print("top layer second half")
-        for j in range(move_steps-1):
-            rotate.position.x -= circle_shift_x[j]
-            rotate.position.y -= circle_shift_yp[j]
-            x -= circle_shift_x[j]
-            y -= circle_shift_yp[j]
-            quaternion_z = [0,0,np.sin((z_rotation_step*(move_steps+j))/2),np.cos((z_rotation_step*(move_steps+j))/2)]
-            quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
-            quaternion_tmp = quaternion_res
-            quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_y)
-            rotate.orientation.w = quaternion_res[3]
-            rotate.orientation.x = quaternion_res[0]
-            rotate.orientation.y = quaternion_res[1]
-            rotate.orientation.z = quaternion_res[2]
-            if j%2==0:
-                joint_angles = self.get_joint_angles(rotate)
-                self._guarded_move_to_joint_position(joint_angles)
-                im.file_number = file_number
-                last_saved_file_number = im.last_saved_file_number
-                im.snap_flag = True
-                while(True):
-                    if im.last_saved_file_number == file_number:
-                        if im.snap_flag == False:
-                            file_number += 1
-                            break
+        # print("top layer second half")
+        # for j in range(move_steps-1):
+        #     rotate.position.x -= circle_shift_x[j]
+        #     rotate.position.y -= circle_shift_yp[j]
+        #     x -= circle_shift_x[j]
+        #     y -= circle_shift_yp[j]
+        #     quaternion_z = [0,0,np.sin((z_rotation_step*(move_steps+j))/2),np.cos((z_rotation_step*(move_steps+j))/2)]
+        #     quaternion_res = tf.transformations.quaternion_multiply(quaternion_00,quaternion_z)
+        #     quaternion_tmp = quaternion_res
+        #     quaternion_res = tf.transformations.quaternion_multiply(quaternion_res,quaternion_y)
+        #     rotate.orientation.w = quaternion_res[3]
+        #     rotate.orientation.x = quaternion_res[0]
+        #     rotate.orientation.y = quaternion_res[1]
+        #     rotate.orientation.z = quaternion_res[2]
+        #     if j%2==0:
+        #         joint_angles = self.get_joint_angles(rotate)
+        #         self._guarded_move_to_joint_position(joint_angles)
+        #         im.file_number = file_number
+        #         last_saved_file_number = im.last_saved_file_number
+        #         im.snap_flag = True
+        #         while(True):
+        #             if im.last_saved_file_number == file_number:
+        #                 if im.snap_flag == False:
+        #                     file_number += 1
+        #                     break
                 
-                step=j+5
-                viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
-                # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
+        #         step=j+5
+        #         viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z,total_steps, step, layer)], axis=0)
+        #         # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
         
         np.save(directory+"viewpoints.npy",viewpoints)
 
@@ -581,7 +585,7 @@ def main():
         
             # while not rospy.is_shutdown():
             print("\nRotating arm...")
-            arm.rotate_arm(0.2,2,object_name)
+            arm.rotate_arm(0.2,12,object_name)
 
             try:
                 delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)

@@ -5,7 +5,6 @@ import sys
 import os
 import random
 import h5py
-import ipdb
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -15,12 +14,14 @@ import cupy as cp
 import numpy as np
 from chainer.backends import cuda
 
-sys.path.append("./../../")
+sys.path.append(".")
 import gqn
 from gqn.preprocessing import make_uint8, preprocess_images
-from model_chain import Model
 from hyperparams import HyperParameters
 from functions import compute_yaw_and_pitch
+from model_chain import Model
+from trainer.meter import Meter
+
 
 def main():
     try:
@@ -28,6 +29,25 @@ def main():
     except:
         pass
 
+    # loading dataset & model
+    cuda.get_device(args.gpu_device).use()
+    xp=cp
+
+    hyperparams = HyperParameters()
+    assert hyperparams.load(args.snapshot_directory)
+
+    model = Model(hyperparams)
+    chainer.serializers.load_hdf5(args.snapshot_file, model)
+    model.to_gpu()
+
+    total_observations_per_scene = 4
+    fps = 30
+
+    black_color = -0.5
+    image_shape = (3, ) + hyperparams.image_size
+    axis_observations_image = np.zeros(
+        (3, image_shape[1], total_observations_per_scene * image_shape[2]),
+        dtype=np.float32)
 
     #==============================================================================
     # Utilities
@@ -69,7 +89,7 @@ def main():
             dataset.append(item)
         
         return dataset
-
+    
     def to_device(array):
         # if using_gpu:
         array = cuda.to_gpu(array)
@@ -139,7 +159,6 @@ def main():
 
             query_viewpoints = rotate_query_viewpoint(
                 horizontal_angle_rad, camera_distance, camera_position_y)
-            print (query_viewpoints)
             generated_images = model.generate_image(query_viewpoints,
                                                     representation)[0]
 
@@ -150,26 +169,6 @@ def main():
                     animated=True))
 
             animation_frame_array.append(artist_array)
-    
-    # loading dataset & model
-    cuda.get_device(args.gpu_device).use()
-    xp=cp
-
-    hyperparams = HyperParameters()
-    assert hyperparams.load(args.snapshot_directory)
-
-    model = Model(hyperparams)
-    chainer.serializers.load_hdf5(args.snapshot_file, model)
-    model.to_gpu()
-
-    total_observations_per_scene = 4
-    fps = 30
-
-    black_color = -0.5
-    image_shape = (3, ) + hyperparams.image_size
-    axis_observations_image = np.zeros(
-        (3, image_shape[1], total_observations_per_scene * image_shape[2]),
-        dtype=np.float32)
 
     #==============================================================================
     # Visualization
@@ -184,22 +183,28 @@ def main():
     axis_generation = fig.add_subplot(2, 1, 2)
     axis_generation.axis("off")
     axis_generation.set_title("neural rendering")
-    
-    
-    # iterator
+
+    #==============================================================================
+    # Generating animation
+    #==============================================================================
     dataset = read_files(args.dataset_directory)
     file_number = 1
+    random.seed(0)
+    np.random.seed(0)
+
     with chainer.no_backprop_mode():
-        
         iterator  = chainer.iterators.SerialIterator(dataset,batch_size=1)
         for i in range(len(iterator.dataset)):
             animation_frame_array = []
-            images, viewpoints = np.array([iterator.dataset[i]["image"]]),np.array([iterator.dataset[i]["viewpoint"]])
-            
-            camera_distance = np.mean(np.linalg.norm(viewpoints[:,:,:3],axis=2))
-            camera_position_y = np.mean(viewpoints[:,:,1])
 
-            images = images.transpose((0,1,4,2,3)).astype(np.float32)
+            # shape: (batch, views, height, width, channels)
+            images, viewpoints = np.array([iterator.dataset[i]["image"]]),np.array([iterator.dataset[i]["viewpoint"]])
+            camera_distance = np.mean(
+                np.linalg.norm(viewpoints[:, :, :3], axis=2))
+            camera_position_y = np.mean(viewpoints[:, :, 1])
+
+            # (batch, views, height, width, channels) -> (batch, views, channels, height, width)
+            images = images.transpose((0, 1, 4, 2, 3)).astype(np.float32)
             images = preprocess_images(images)
 
             batch_index = 0
@@ -207,15 +212,23 @@ def main():
             total_views = images.shape[1]
             random_observation_view_indices = list(range(total_views))
             random.shuffle(random_observation_view_indices)
-            random_observation_view_indices = random_observation_view_indices[:total_observations_per_scene]
+            random_observation_view_indices = random_observation_view_indices[:
+                                                                                total_observations_per_scene]
+
+            #------------------------------------------------------------------------------
+            # Observations
+            #------------------------------------------------------------------------------
             observed_images = images[batch_index,
-                                    random_observation_view_indices]
-            observed_viewpoints = viewpoints[batch_index, 
-                                            random_observation_view_indices]
+                                        random_observation_view_indices]
+            observed_viewpoints = viewpoints[
+                batch_index, random_observation_view_indices]
 
             observed_images = to_device(observed_images)
             observed_viewpoints = to_device(observed_viewpoints)
 
+            #------------------------------------------------------------------------------
+            # Generate images with a single observation
+            #------------------------------------------------------------------------------
             # Scene encoder
             representation = model.compute_observation_representation(
                 observed_images[None, :1], observed_viewpoints[None, :1])
@@ -229,7 +242,10 @@ def main():
             # Neural rendering
             render(representation, camera_distance, camera_position_y,
                     fps * 2, animation_frame_array)
-            
+
+            #------------------------------------------------------------------------------
+            # Add observations
+            #------------------------------------------------------------------------------
             for n in range(total_observations_per_scene):
                 observation_indices = random_observation_view_indices[:n +
                                                                         1]
@@ -248,8 +264,11 @@ def main():
                     fps // 2,
                     animation_frame_array,
                     rotate_camera=False)
-            
-            # Scene encoder with all given observations
+
+            #------------------------------------------------------------------------------
+            # Generate images with all observations
+            #------------------------------------------------------------------------------
+            # Scene encoder
             representation = model.compute_observation_representation(
                 observed_images[None, :total_observations_per_scene + 1],
                 observed_viewpoints[None, :total_observations_per_scene +
@@ -258,13 +277,16 @@ def main():
             # Neural rendering
             render(representation, camera_distance, camera_position_y,
                     fps * 4, animation_frame_array)
-            
+
+            #------------------------------------------------------------------------------
+            # Write to file
+            #------------------------------------------------------------------------------
             anim = animation.ArtistAnimation(
-                        fig,
-                        animation_frame_array,
-                        interval=1 / fps,
-                        blit=True,
-                        repeat_delay=0)
+                fig,
+                animation_frame_array,
+                interval=1 / fps,
+                blit=True,
+                repeat_delay=0)
 
             # anim.save(
             #     "{}/shepard_matzler_observations_{}.gif".format(
@@ -276,17 +298,16 @@ def main():
                     args.figure_directory, file_number),
                 writer="ffmpeg",
                 fps=fps)
-            
-            sys.exit(1)
+
             file_number += 1
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset-directory", type=str, required=True)
     parser.add_argument("--snapshot-directory", type=str, required=True)
     parser.add_argument("--snapshot-file",type=str,required=True)
-    parser.add_argument("--dataset-directory", type=str, required=True)
-    parser.add_argument("--figure-directory",type=str, required=True)
-    parser.add_argument("--gpu-device",type=int,default=0)
+    parser.add_argument("--gpu-device", type=int, default=0)
+    parser.add_argument("--figure-directory", type=str, required=True)
     args = parser.parse_args()
-    sys.exit(main())
-    
+    main()

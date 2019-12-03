@@ -241,7 +241,11 @@ approx 6 days, due to saving the model every epoch.
 "epoch": 5000,  
 "iteration": 112000,  
 "elapsed_time": 64022.753862868994 (17hours 47min)  
-  
+
+python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64bot_only/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64bot_only/validation/ --snapshot-directory ./snapshots/5_gazebo_d128_b5_e5000_im64bot_gs12 --log-directory ./log/5_gazebo_d128_b5_e5000_im64bot_gs12 --image-size 64 --batch-size 5 --epochs 5000 --ngpu 2 --report-interval-iters 100  
+
+62888.5 s  
+
 ### data list creation
 ```ls ./gqn-datasets/shepard_metzler_5_npy/test/images/*.npy | head -n 50 > testi.list```
 ```less testi.list``` 
