@@ -120,21 +120,29 @@ class RotateArm(object):
         return viewpoint
 
     def viewpoint_from_current_step(self, x, y, z, total_steps, step, layer):
-        yaw_steps = (2*np.pi)/total_steps
-        yaw = step*yaw_steps
-        
+        # y is designated as height for GQN, therefore switch z with y
+        # yaw_steps = (2*np.pi)/total_steps
+        # yaw = step*yaw_steps
+        # print(x,y,z)
         if layer == 'bot':
             pitch = 0
+            if y<0: 
+                yaw=np.pi+np.arctan2(x,y)
+            elif x<0:
+                yaw=np.pi*2+np.arctan2(x,y)
+            else:
+                yaw=np.arctan2(x,y)
+
             print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
-            viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
+            viewpoint = np.array([x,z,y,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)]) # changed for compatibility with observation script
         elif layer == 'mid':
             pitch = np.pi/6
             print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
-            viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
+            viewpoint = np.array([x,z,y,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
         elif layer == 'top':
             pitch = np.arcsin(3/4)
             print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
-            viewpoint = np.array([x,y,z,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
+            viewpoint = np.array([x,z,y,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
         
         return viewpoint
 
@@ -182,7 +190,7 @@ class RotateArm(object):
 
         ## Save params ##
         object_name = object_name
-        directory = "/home/baxter_ws/images64x64_bottom_only/"+object_name+"/"
+        directory = "/home/baxter_ws/images64x64_bot/"+object_name+"/"
         if os.path.exists(directory):
             pass
         else:
@@ -193,7 +201,8 @@ class RotateArm(object):
         ##############################
         ### Algorithm for rotation ###
         ##############################
-        x, y, z = 0.0, 0.0, 0.0
+        center_x, center_y, center_z = 0.0, 0.0, 0.07
+        x, y, z = 0.0, 0.0, 0.07 # estimated from simulator
         rotate.position.z -= 0.3
         rotate.position.x -= radius
         x -= radius

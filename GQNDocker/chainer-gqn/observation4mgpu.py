@@ -97,12 +97,12 @@ def main():
                                camera_position_y):
         camera_position = np.array([
             camera_distance * math.sin(horizontal_angle_rad),  # x
-            camera_position_y,
             camera_distance * math.cos(horizontal_angle_rad),  # z
+            camera_position_y, # switched to z, due to the nature of the simulator dataset
         ])
-        center = np.array((0, camera_position_y, 0))
+        center = np.array((0, camera_position_y, 0)) # cam y switched to z
         camera_direction = camera_position - center
-        yaw, pitch = compute_yaw_and_pitch(camera_direction)
+        yaw, pitch = compute_yaw_and_pitch(camera_direction) # totally right, I'm dumbsht
         query_viewpoints = xp.array(
             (
                 camera_position[0],
@@ -139,7 +139,7 @@ def main():
 
             query_viewpoints = rotate_query_viewpoint(
                 horizontal_angle_rad, camera_distance, camera_position_y)
-            print (query_viewpoints)
+            # print (query_viewpoints)
             generated_images = model.generate_image(query_viewpoints,
                                                     representation)[0]
 
@@ -262,7 +262,7 @@ def main():
             anim = animation.ArtistAnimation(
                         fig,
                         animation_frame_array,
-                        interval=1 / fps,
+                        interval=1000, # originally 1/fps
                         blit=True,
                         repeat_delay=0)
 
@@ -277,7 +277,7 @@ def main():
                 writer="ffmpeg",
                 fps=fps)
             
-            sys.exit(1)
+            # sys.exit(1)
             file_number += 1
 
 if __name__ == "__main__":

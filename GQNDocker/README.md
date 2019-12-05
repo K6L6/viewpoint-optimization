@@ -244,7 +244,18 @@ approx 6 days, due to saving the model every epoch.
 
 python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64bot_only/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64bot_only/validation/ --snapshot-directory ./snapshots/5_gazebo_d128_b5_e5000_im64bot_gs12 --log-directory ./log/5_gazebo_d128_b5_e5000_im64bot_gs12 --image-size 64 --batch-size 5 --epochs 5000 --ngpu 2 --report-interval-iters 100  
 
-62888.5 s  
+62888.5s  
+
+python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/train/ --test-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/validation/ --snapshot-directory ./snapshots/6_RFCNOR_d128_b5_e2500_im64_gs12/ --log-directory ./log/6_RFCNOR_d128_b5_e2500_im64_gs12 --image-size 64 --batch-size 5 --epochs 2500 --ngpu 2  
+
+28643.9s  
+
+python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/train/ --test-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/validation/ --snapshot-directory ./snapshots/6_RFCNOR_d128_b5_e5000_im64_gs12 --log-directory ./log/6_RFCNOR_d128_b5_e5000_im64_gs12 --image-size 64 --batch-size 5 --epochs 5000 --ngpu 2 --report-interval-iters 50  
+
+58844.2s  
+
+python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/train/ --test-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/validation/ --snapshot-directory ./snapshots/6_RFCNOR_d128_b5_e10000_im64_gs12 --log-directory ./log/6_RFCNOR_d128_b5_e10000_im64_gs12 --image-size 64 --batch-size 5 --epochs 10000 --ngpu 2 --report-interval-iters 100  
+stopped midway because data was incompatible  
 
 ### data list creation
 ```ls ./gqn-datasets/shepard_metzler_5_npy/test/images/*.npy | head -n 50 > testi.list```
