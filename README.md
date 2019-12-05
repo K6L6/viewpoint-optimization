@@ -119,14 +119,13 @@ Training with dataset synthesized from simulator takes approx a little more than
 Image size seems to be directly proportional to training time.  
   
 Rendering of a **thin green book**.  
-[![link](/result_example/sim_dataset_render_1.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)  
+[![link](/result_example/green_book.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)  
   
-Rendering of a **laptop**.  
-[![link](/result_example/sim_dataset_render_2.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)  
+Rendering of a **blue pen**.  
+[![link](/result_example/blue_pen.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)  
   
 Some thoughts on training result:  
-* Theres a strange pattern being learned by the network which appears in all rendered scenes.  
-* The viewpoint data needs to be checked again, because colors are predicted properly but other scene attributes are a mess. :soon:
+* Recently found out that GQN uses Y axis for height, which differed from Baxter simulator that used Z axis for height.
 
 ### Rooms Free Camera without Object Rotations ###
 finished training but result not yet checked.
