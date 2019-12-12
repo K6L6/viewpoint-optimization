@@ -134,15 +134,15 @@ class RotateArm(object):
                 yaw=np.arctan2(x,y)
 
             print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
-            viewpoint = np.array([x,z,y,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)]) # changed for compatibility with observation script
+            viewpoint = np.array([x,z,y,np.cos(yaw),np.sin(yaw),np.cos(pitch),np.sin(pitch)]) # changed for compatibility with observation script
         elif layer == 'mid':
             pitch = np.pi/6
             print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
-            viewpoint = np.array([x,z,y,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
+            viewpoint = np.array([x,z,y,np.cos(yaw),np.sin(yaw),np.cos(pitch),np.sin(pitch)])
         elif layer == 'top':
             pitch = np.arcsin(3/4)
             print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
-            viewpoint = np.array([x,z,y,np.sin(yaw),np.cos(yaw),np.sin(pitch),np.cos(pitch)])
+            viewpoint = np.array([x,z,y,np.np.cos(yaw),np.sin(yaw),np.cos(pitch),np.sin(pitch)])
         
         return viewpoint
 
