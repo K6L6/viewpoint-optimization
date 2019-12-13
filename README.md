@@ -3,6 +3,7 @@ The purpose is to compensate for limitations of performing robot tasks with a fi
 This is a method developed to learn optimized viewpoint for robots to perform the designated task.  
 Next suitable viewpoint will be selected by the hill climbing algorithm, which will search for a viewpoint that shows highest uncertainty in the world model of the agent.
 
+Might switch to a pytorch implementation of GQN: https://github.com/iShohei220/torch-gqn  
 ## Project Progress
 * [x] Prelimenary experiments
     1. [x] Observation of variance in predictions
@@ -115,14 +116,23 @@ the browser should load the desktop below:
 Simulator dataset with Baxter and 3DGEMS dataset (size will be increased by domain randomization) :soon:  
 ### Simulator Dataset ###
 Training with 0.002% of GQN's rooms_free_camera dataset for 100 epochs takes approx 1 day with 1 GPU.  
-Training with dataset synthesized from simulator takes approx a little more than 3 hours for 1000 epochs.  
-Image size seems to be directly proportional to training time.  
+Training with dataset synthesized from simulator takes approx 3 hours 30 min for 1000 epochs.  
+Image size seems to be directly proportional to training time.
+
+| Dataset                     | Green Book                                                                                                |
+| --------------------------- |:---------------------------------------------------------------------------------------------------------:|
+| Animation of dataset        | [![link](/result_example/animated_images.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/) |
+| Rendered from trained model | [![link](/result_example/green_book.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)      |
+
+A sample of the how the training dataset looks. The .gif below shows images of 13 corresponding viewpoints observing a green book.  
+[![link](/result_example/animated_images.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)
   
+Some rendered results from training 
 Rendering of a **thin green book**.  
 [![link](/result_example/green_book.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)  
   
-Rendering of a **blue pen**.  
-[![link](/result_example/blue_pen.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)  
+Rendering of a **green sphere**.  
+[![link](/result_example/green_sphere.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)  
   
 Some thoughts on training result:  
 * Recently found out that GQN uses Y axis for height, which differed from Baxter simulator that used Z axis for height.
