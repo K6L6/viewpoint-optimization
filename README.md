@@ -115,19 +115,20 @@ Currently running a bottom layer only version of the dataset (pitch=0), and it c
 
 ## Some training results
 
-Simulator dataset with Baxter and 3DGEMS dataset (size will be increased by domain randomization) :soon:  
+Simulator dataset with Baxter and 3DGEMS dataset (size will be increased by domain randomization) :snail:  
 ### Simulator Dataset ###
 Training with 0.002% of GQN's rooms_free_camera dataset for 100 epochs takes approx 1 day with 1 GPU.  
 Training with dataset synthesized from simulator takes approx 3 hours 30 min for 1000 epochs.  
 Image size seems to be directly proportional to training time.
 
-| **Dataset**                 | **Green Book**                                                                                            | **Green Sphere**                                                                                            |
+| **Dataset**                 | **Green Book**                                                                                            | **Green Sphere**                                                                                          |
 | --------------------------- |:---------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------:|
-| Animation of dataset        | [![link](/result_example/animated_images.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/) |
-| Rendered from trained model | [![link](/result_example/green_book.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)      | [![link](/result_example/green_sphere.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/) |
+| Animation of dataset        | [![link](/result_example/animated_images.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/) |                                                                                                           |
+| Rendered from trained model | [![link](/result_example/green_book.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)      | [![link](/result_example/green_sphere.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)    |
   
 Some thoughts on training result:  
-* Recently found out that GQN uses Y axis for height, which differed from Baxter simulator that used Z axis for height.
+* Recently found out that GQN-Chainer uses y-axis for height of the camera, but the open source GQN dataset uses z-axis for height of the camera. I realized this when training with *rooms_ring_camera* dataset, and reading through *functions.py* in the Chainer implementation of GQN. However, rendered results shown in the Chainer implementation Github seem completely fine regardless. (*Why?*)
+* The rendered result seems to clip/skip/fail rendering specific viewpoints which contain Baxter in it. (under investigation)
 
 ### Rooms Free Camera without Object Rotations ###
-finished training but result not yet checked.
+Usually shows only the background when using the same dataset size as well as training parameters, as the dataset created in the Gazebo simulator.
