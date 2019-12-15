@@ -6,6 +6,7 @@ import os
 import random
 import h5py
 import ipdb
+import cv2
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -96,13 +97,14 @@ def main():
     def rotate_query_viewpoint(horizontal_angle_rad, camera_distance,
                                camera_position_y):
         camera_position = np.array([
-            camera_distance * math.sin(horizontal_angle_rad),  # x
+            camera_distance * math.sin(horizontal_angle_rad),   # x
+            camera_position_y,
             camera_distance * math.cos(horizontal_angle_rad),  # z
-            camera_position_y, # switched to z, due to the nature of the simulator dataset
         ])
-        center = np.array((0, camera_position_y, 0)) # cam y switched to z
+        center = np.array((0, camera_position_y, 0)) 
         camera_direction = camera_position - center
-        yaw, pitch = compute_yaw_and_pitch(camera_direction) # totally right, I'm dumbsht
+        yaw, pitch = compute_yaw_and_pitch(camera_direction)
+        print("yaw_in_rotate: ",yaw*180/math.pi) 
         query_viewpoints = xp.array(
             (
                 camera_position[0],
@@ -117,6 +119,7 @@ def main():
         )
         query_viewpoints = xp.broadcast_to(query_viewpoints,
                                            (1, ) + query_viewpoints.shape)
+
         return query_viewpoints
 
     def render(representation,
@@ -125,6 +128,8 @@ def main():
                total_frames,
                animation_frame_array,
                rotate_camera=True):
+        
+        viewpoint_file = open('viewpoints.txt','w')
         for t in range(0, total_frames):
             artist_array = [
                 axis_observations.imshow(
@@ -139,10 +144,14 @@ def main():
 
             query_viewpoints = rotate_query_viewpoint(
                 horizontal_angle_rad, camera_distance, camera_position_y)
-            # print (query_viewpoints)
+            
+            # print ("x: ",query_viewpoints[0][0]," y: ",query_viewpoints[0][1]," z: ",query_viewpoints[0][2])
+            print("yaw: ",np.arccos(query_viewpoints[0][3])*180/math.pi)
             generated_images = model.generate_image(query_viewpoints,
                                                     representation)[0]
 
+            cv2.imwrite('/GQN/chainer-gqn/frames_n_viewpoints/frame_{}.jpg'.format(t),make_uint8(generated_images))
+            viewpoint_file.write("frame {} viewpoint: ".format(t)+str(query_viewpoints[0][0])+"\n")
             artist_array.append(
                 axis_generation.imshow(
                     make_uint8(generated_images),
@@ -150,6 +159,8 @@ def main():
                     animated=True))
 
             animation_frame_array.append(artist_array)
+        # sys.exit(1)
+
     
     # loading dataset & model
     cuda.get_device(args.gpu_device).use()
@@ -230,6 +241,7 @@ def main():
             render(representation, camera_distance, camera_position_y,
                     fps * 2, animation_frame_array)
             
+            ipdb.set_trace()
             for n in range(total_observations_per_scene):
                 observation_indices = random_observation_view_indices[:n +
                                                                         1]
@@ -257,12 +269,12 @@ def main():
 
             # Neural rendering
             render(representation, camera_distance, camera_position_y,
-                    fps * 4, animation_frame_array)
+                    fps * 6, animation_frame_array)
             
             anim = animation.ArtistAnimation(
                         fig,
                         animation_frame_array,
-                        interval=1000, # originally 1/fps
+                        interval=1/fps, # originally 1/fps
                         blit=True,
                         repeat_delay=0)
 
@@ -275,7 +287,7 @@ def main():
                 "{}/rooms_ring_camera_observations_{}.mp4".format(
                     args.figure_directory, file_number),
                 writer="ffmpeg",
-                fps=fps)
+                fps=10)
             
             # sys.exit(1)
             file_number += 1

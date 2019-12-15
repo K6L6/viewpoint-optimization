@@ -242,6 +242,7 @@ def main():
             # Neural rendering
             render(representation, camera_distance, camera_position_y,
                     fps * 2, animation_frame_array)
+            
 
             #------------------------------------------------------------------------------
             # Add observations
