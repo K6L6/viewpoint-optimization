@@ -26,7 +26,8 @@ RUN . ./miniconda/bin/activate && conda update -y conda
 RUN . ./miniconda/bin/activate && conda install -y matplotlib \
 	numpy \
 	h5py \
-	pandas 
+	pandas \
+	opencv
 
 RUN . ./miniconda/bin/activate && pip install chainer\
 		    cupy-cuda100\

@@ -151,7 +151,7 @@ def main():
                                                     representation)[0]
 
             cv2.imwrite('/GQN/chainer-gqn/frames_n_viewpoints/frame_{}.jpg'.format(t),make_uint8(generated_images))
-            viewpoint_file.write("frame {} viewpoint: ".format(t)+str(query_viewpoints[0][0])+"\n")
+            viewpoint_file.write("frame {} viewpoint: ".format(t)+str(query_viewpoints[0][0])+", "+str(query_viewpoints[0][1])+", "+str(query_viewpoints[0][2])+", "+str(np.arccos(query_viewpoints[0][3]))+", "+str(np.arccos(query_viewpoints[0][5]))+"\n")
             artist_array.append(
                 axis_generation.imshow(
                     make_uint8(generated_images),
@@ -159,7 +159,8 @@ def main():
                     animated=True))
 
             animation_frame_array.append(artist_array)
-        # sys.exit(1)
+        viewpoint_file.close()
+        sys.exit(1)
 
     
     # loading dataset & model
@@ -241,7 +242,7 @@ def main():
             render(representation, camera_distance, camera_position_y,
                     fps * 2, animation_frame_array)
             
-            ipdb.set_trace()
+            # ipdb.set_trace()
             for n in range(total_observations_per_scene):
                 observation_indices = random_observation_view_indices[:n +
                                                                         1]
