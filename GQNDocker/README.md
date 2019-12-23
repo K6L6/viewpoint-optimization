@@ -242,6 +242,7 @@ approx 6 days, due to saving the model every epoch.
 "iteration": 112000,  
 "elapsed_time": 64022.753862868994 (17hours 47min)  
 
+## Regular training  
 python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64bot_only/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset8pf64x64bot_only/validation/ --snapshot-directory ./snapshots/5_gazebo_d128_b5_e5000_im64bot_gs12 --log-directory ./log/5_gazebo_d128_b5_e5000_im64bot_gs12 --image-size 64 --batch-size 5 --epochs 5000 --ngpu 2 --report-interval-iters 100  
 
 62888.5s  
@@ -257,6 +258,12 @@ python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/
 python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/train/ --test-dataset-directory /GQN/gqn-datasets/RFCNOR_subset/validation/ --snapshot-directory ./snapshots/6_RFCNOR_d128_b5_e10000_im64_gs12 --log-directory ./log/6_RFCNOR_d128_b5_e10000_im64_gs12 --image-size 64 --batch-size 5 --epochs 10000 --ngpu 2 --report-interval-iters 100  
 stopped midway because data was incompatible  
 
+python3 train_mGPU.py --train-dataset-directory /GQN/gqn-datasets/simdataset5pf64x64_20steps/train/ --test-dataset-directory /GQN/gqn-datasets/simdataset5pf64x64_20steps/validation/ --snapshot-directory ./snapshots/5_gazebo20obs_d125_b5_e5000_im64bot_gs12 --log-directory ./log/5_gazebo20obs_d125_b5_e5000_im64bot_gs12 --image-size 64 --batch-size 5 --epochs 5000 --ngpu 2 --report-interval-iters 100  
+time taken: 16hrs 30min~
+
+python train_mGPU.py --train-dataset-directory ./../gqn-datasets/simdataset5pf64x64_noshapes_10steps/train/ --test-dataset-directory ./../gqn-datasets/simdataset5pf64x64_noshapes_10steps/validation/ --snapshot-directory ./snapshots/5_gazebo10obs_noshapes_d125_b5_e5000_im64bot_gs12/ --log-directory ./log/5_gazebo10obs_noshapes_d125_b5_e5000_im64bot_gs12 --batch-size 5 --ngpu 2 --epochs 5000 --report-interval-iters 100  
+
+time taken: 15 hrs 
 ### data list creation
 ```ls ./gqn-datasets/shepard_metzler_5_npy/test/images/*.npy | head -n 50 > testi.list```
 ```less testi.list``` 
@@ -289,6 +296,7 @@ stopped midway because data was incompatible
 ```python3 observation_testing.py --dataset-directory /GQN/gqn-datasets/2018-data/m_train_o_d1_k15/train/ --snapshot-directory /GQN/chainer-gqn/snapshots/4_sm2018_d0.01_b30_e200_gs12/ --gpu-device 0 --figure-directory /GQN/chainer-gqn/figures/4_sm2018_d0.01_b30_e200_gs12_test```
 
 ```python3 horizontal_observation.py --dataset-directory ~/gqn-datasets/m_train_o_d1_k15/train --snapshot-directory ~/chainer-gqn/snapshots/4_sm2018_d0.01_b30_e400_gs12_copy/ --gpu-device 0 --figure-directory ~/chainer-gqn/figures/4_sm2018_d0.01_b30_e400_gs12_v0trained_tensXtest```
+
 
 # notes on GQN code
 intrinsic rotations  

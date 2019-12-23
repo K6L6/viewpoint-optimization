@@ -5,7 +5,7 @@ change version: kinetic
 
 /cam_attachment goes in rethink_ee_description/urdf/
 
-left_end_effectormod.urdf.xacro & baxter.urdf.xacro & baxter_base.gazebo.xacro can be found in /baxter_description
+left_end_effectormod.urdf.xacro & baxter.urdf.xacro & baxter_base.gazebo.xacro can be found in /baxter_description/urdf
 
 baxter_world.launch is a launch file in /src/baxter_simulator/baxter_gazebo/launch
 

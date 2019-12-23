@@ -129,7 +129,7 @@ class RotateArm(object):
         elif layer == 'top':
             pitch = np.arcsin(3/4)
             print("step: "+str(step)+",yaw: "+str(yaw*180/np.pi))
-            viewpoint = np.array([x,z,y,np.np.cos(yaw),np.sin(yaw),np.cos(pitch),np.sin(pitch)])
+            viewpoint = np.array([x,z,y,np.cos(yaw),np.sin(yaw),np.cos(pitch),np.sin(pitch)])
         
         return viewpoint
 
@@ -171,24 +171,11 @@ class RotateArm(object):
             circle_shift_y[i] = circle_y[i+1]-circle_y[i]
             theta_shift[i] = theta[i+1]-theta[i]
 
-
-        # step_value = (radius*2)/(steps/2)
-        # circle_x = np.arange(-radius,radius+step_value, step=step_value)
-        # move_steps = len(circle_x)-1
-        
-        # circle_yp = np.zeros(move_steps)
-        # circle_shift_y = np.zeros(move_steps)
-        # circle_shift_x = np.zeros(move_steps)
-        # # wrist_twist = 3.059/move_steps # value obtained from baxter hardware specifications for w2
-        # for i in range(move_steps):
-        #     circle_shift_x[i] = circle_x[i+1] - circle_x[i]    
-        # circle_shift_yp = self.calc_shift_y(circle_x,radius)
-        # print("half of total steps is ",len(circle_shift_x))
-        # rotate.orientation.x=0
-
         ## Save params ##
         object_name = object_name
-        directory = "/home/baxter_ws/images64x64_bot_{}steps/".format(steps)+object_name+"/"
+        directory = "/home/baxter_ws/images64x64_{}steps/".format(steps)+object_name+"/"
+        viewpoints = np.empty((0,7),dtype=np.float32)
+
         if os.path.exists(directory):
             pass
         else:
@@ -199,10 +186,11 @@ class RotateArm(object):
         ##############################
         ### Algorithm for rotation ###
         ##############################
-        center_x, center_y, center_z = 0.0, 0.0, 0.07
-        x, y, z = 0.0, 0.0, 0.07 # estimated from simulator
+        center_x, center_y, center_z = 0.0, 0.0, 0.0
+        x, y, z = 0.0, 0.0, 0.0 # estimated from simulator
         
         rotate.position.x -= radius
+        x -= radius
         joint_angles = self.get_joint_angles(rotate)
         self._guarded_move_to_joint_position(joint_angles)
 
@@ -214,10 +202,15 @@ class RotateArm(object):
                       'left_s0': -1.5489862163477794, 
                       'left_s1': -0.511308932903769}
 
-        # rotate.position.z -= 0.3
-        # joint_angles = self.get_joint_angles(rotate)
+        
         # print(joint_angles)
         self._guarded_move_to_joint_position(joint_angles)
+
+        rotate.position.z -= 0.37
+        rotate.orientation.x = 0
+        joint_angles = self.get_joint_angles(rotate)
+        self._guarded_move_to_joint_position(joint_angles)
+
         current_pose = self._limb.endpoint_pose()
         rotate.position.x = current_pose['position'].x
         rotate.position.y = current_pose['position'].y
@@ -226,16 +219,12 @@ class RotateArm(object):
         rotate.orientation.y = current_pose['orientation'].y 
         rotate.orientation.z = current_pose['orientation'].z 
         rotate.orientation.w = current_pose['orientation'].w        
-        x -= radius
-    
         
         print("bottom layer start ")
         z_rotation_step = (2*np.pi)/steps    
         
         quaternion_00 = [rotate.orientation.x, rotate.orientation.y, rotate.orientation.z, rotate.orientation.w]
         quaternion_res = quaternion_00
-
-        viewpoints = np.empty((0,7),dtype=np.float32)
 
         # # # # # # # # # # # # # # # # # # # # # # # # #
         ### ### ### ### Lowest layer of Dome ### ### ###                                #### BOTTOM ####
@@ -251,9 +240,8 @@ class RotateArm(object):
                 if im.snap_flag == False:
                     file_number += 1
                     break
-        # viewpoints = np.append(viewpoints,[self.get_viewpoint()], axis=0)
-        step = 0
         
+        step = 0    
         layer = 'bot'
         print("x,y,z: "+str(x)+","+str(y)+","+str(z))
         viewpoints = np.append(viewpoints,[self.viewpoint_from_current_step(x,y,z, step, layer)], axis=0)
@@ -615,7 +603,7 @@ def main():
     limb = 'left'
     hover_distance = 0.15 # meters
     arm = RotateArm(limb, hover_distance)
-    object_pose=Pose(position=Point(x=0.55, y=0.2, z=0.8))
+    object_pose=Pose(position=Point(x=0.55, y=0.2, z=0.778))
     # object_pose = Pose(position=Point(x=0.6725, y=0.1265, z=0.7825)) # from baxter sim ik demo
     object_reference_frame="world"
     # Spawn model sdf
@@ -642,7 +630,7 @@ def main():
         
             # while not rospy.is_shutdown():
             print("\nRotating arm...")
-            arm.rotate_arm(0.2,20,object_name)
+            arm.rotate_arm(0.2, 10, object_name)
 
             try:
                 delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)

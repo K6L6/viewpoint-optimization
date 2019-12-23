@@ -39,7 +39,7 @@
   <run_depend>gazebo_msgs</run_depend>
  
   <export>
-    <gazebo_ros gazebo_model_path="${prefix}/models:${prefix}/models/dataset/decoration:${prefix}/models/dataset/electronics:${prefix}/models/dataset/food:${prefix}/models/dataset/kitchen:${prefix}/models/dataset/shapes:${prefix}/models/dataset/stationery"/>
+    <gazebo_ros gazebo_model_path="${prefix}/models:/home/baxter_ws/models/decoration:/home/baxter_ws/models/earthquake:/home/baxter_ws/models/electronics:/home/baxter_ws/models/decoration:/home/baxter_ws/models/food:/home/baxter_ws/models/kitchen:/home/baxter_ws/models/shapes:/home/baxter_ws/models/stationery"/>
     <gazebo_ros gazebo_media_path="${prefix}/models"/>
   </export>
 

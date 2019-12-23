@@ -447,6 +447,35 @@ class Model(chainer.Chain):
 
         mean_x = self.map_u_x(u_t)
         return mean_x.data
+    
+    def generate_images(self, v, r, no_of_samples):
+        '''generate multiple prediction samples'''
+        batch_size = v.shape[0]
+        v = cf.reshape(v, v.shape[:2] + (1, 1))
+
+        generated_images=[]
+        for i in range(no_of_samples):
+            h_t_gen, c_t_gen, u_t, _, _ = self.generate_initial_state(
+            batch_size)
+
+            for t in range(self.num_layers):
+                generation_core = self.get_generation_core(t)
+
+                mean_z_p, ln_var_z_p = self.z_prior_distribution.compute_parameter(
+                    h_t_gen)
+                z_t = cf.gaussian(mean_z_p, ln_var_z_p)
+
+                h_next_gen, c_next_gen, u_next = generation_core(
+                    h_t_gen, c_t_gen, z_t, v, r, u_t)
+
+                u_t = u_next
+                h_t_gen = h_next_gen
+                c_t_gen = c_next_gen
+
+            mean_x = self.map_u_x(u_t)
+            generated_images.append(mean_x.data)
+        
+        return generated_images
 
     def generate_image_from_zero_z(self, v, r):
         xp = cuda.get_array_module(v)

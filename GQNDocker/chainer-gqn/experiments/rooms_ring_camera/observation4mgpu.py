@@ -7,14 +7,17 @@ import random
 import h5py
 import ipdb
 import cv2
-
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from tqdm import tqdm
 import chainer
 import chainer.functions as cf
 import cupy as cp
 import numpy as np
 from chainer.backends import cuda
+
+# image processing
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from skimage.filters import threshold_otsu
 
 sys.path.append("./../../")
 import gqn
@@ -51,6 +54,7 @@ def main():
             
             dataset_images.extend(tmp_images)
             dataset_viewpoints.extend(tmp_viewpoints)
+    
         # for i in range(len(filenames)):
         #     images_npy_path = os.path.join(directory, "images", filenames[i])
         #     viewpoints_npy_path = os.path.join(directory, "viewpoints", filenames[i])
@@ -92,7 +96,7 @@ def main():
         return axis_observations_image
 
     def compute_camera_angle_at_frame(t):
-        return t * 2 * math.pi / (fps * 2)
+        return t * 2 * math.pi / (-fps * 2)
 
     def rotate_query_viewpoint(horizontal_angle_rad, camera_distance,
                                camera_position_y):
@@ -104,7 +108,7 @@ def main():
         center = np.array((0, camera_position_y, 0)) 
         camera_direction = camera_position - center
         yaw, pitch = compute_yaw_and_pitch(camera_direction)
-        print("yaw_in_rotate: ",yaw*180/math.pi) 
+         
         query_viewpoints = xp.array(
             (
                 camera_position[0],
@@ -129,11 +133,11 @@ def main():
                animation_frame_array,
                rotate_camera=True):
         
-        viewpoint_file = open('viewpoints.txt','w')
+        # viewpoint_file = open('viewpoints.txt','w')
         for t in range(0, total_frames):
             artist_array = [
                 axis_observations.imshow(
-                    make_uint8(axis_observations_image),
+                    cv2.cvtColor(make_uint8(axis_observations_image),cv2.COLOR_BGR2RGB),
                     interpolation="none",
                     animated=True)
             ]
@@ -145,23 +149,75 @@ def main():
             query_viewpoints = rotate_query_viewpoint(
                 horizontal_angle_rad, camera_distance, camera_position_y)
             
-            # print ("x: ",query_viewpoints[0][0]," y: ",query_viewpoints[0][1]," z: ",query_viewpoints[0][2])
-            print("yaw: ",np.arccos(query_viewpoints[0][3])*180/math.pi)
             generated_images = model.generate_image(query_viewpoints,
                                                     representation)[0]
+            generated_images = chainer.backends.cuda.to_cpu(generated_images)
+            generated_images = make_uint8(generated_images)
+            generated_images = cv2.cvtColor(generated_images, cv2.COLOR_BGR2RGB)
 
-            cv2.imwrite('/GQN/chainer-gqn/frames_n_viewpoints/frame_{}.jpg'.format(t),make_uint8(generated_images))
-            viewpoint_file.write("frame {} viewpoint: ".format(t)+str(query_viewpoints[0][0])+", "+str(query_viewpoints[0][1])+", "+str(query_viewpoints[0][2])+", "+str(np.arccos(query_viewpoints[0][3]))+", "+str(np.arccos(query_viewpoints[0][5]))+"\n")
             artist_array.append(
                 axis_generation.imshow(
-                    make_uint8(generated_images),
+                    generated_images,
                     interpolation="none",
                     animated=True))
 
             animation_frame_array.append(artist_array)
-        viewpoint_file.close()
-        sys.exit(1)
 
+    def render_wVar(representation,
+               camera_distance,
+               camera_position_y,
+               total_frames,
+               animation_frame_array,
+               no_of_samples,
+               rotate_camera=True):
+        
+        # viewpoint_file = open('viewpoints.txt','w')
+        for t in range(0, total_frames):
+            artist_array = [
+                axis_observations.imshow(
+                    cv2.cvtColor(make_uint8(axis_observations_image),cv2.COLOR_BGR2RGB),
+                    interpolation="none",
+                    animated=True)
+            ]
+
+            horizontal_angle_rad = compute_camera_angle_at_frame(t)
+            if rotate_camera == False:
+                horizontal_angle_rad = compute_camera_angle_at_frame(0)
+
+            query_viewpoints = rotate_query_viewpoint(
+                horizontal_angle_rad, camera_distance, camera_position_y)
+            
+            generated_images = cp.squeeze(cp.array(model.generate_images(query_viewpoints,
+                                                    representation,no_of_samples)))
+            # ipdb.set_trace()
+            var_image = cp.var(generated_images,axis=0)
+            mean_image = cp.mean(generated_images,axis=0)
+            mean_image = make_uint8(np.squeeze(chainer.backends.cuda.to_cpu(mean_image)))
+            mean_image_rgb = cv2.cvtColor(mean_image, cv2.COLOR_BGR2RGB)
+            
+            var_image = chainer.backends.cuda.to_cpu(var_image)
+
+            # grayscale
+            r,g,b = var_image
+            gray_var_image = 0.2989*r+0.5870*g+0.1140*b            
+            # thresholding Otsu's method
+            thresh = threshold_otsu(gray_var_image)
+            var_binary = gray_var_image > thresh
+
+            artist_array.append(
+                axis_generation_var.imshow(
+                    var_binary,
+                    cmap=plt.cm.gray,
+                    interpolation="none",
+                    animated=True))
+
+            artist_array.append(
+                axis_generation_mean.imshow(
+                    mean_image_rgb,
+                    interpolation="none",
+                    animated=True))
+
+            animation_frame_array.append(artist_array)
     
     # loading dataset & model
     cuda.get_device(args.gpu_device).use()
@@ -195,7 +251,13 @@ def main():
     axis_observations.set_title("observations")
     axis_generation = fig.add_subplot(2, 1, 2)
     axis_generation.axis("off")
-    axis_generation.set_title("neural rendering")
+    axis_generation.set_title("Rendered Predictions")
+    axis_generation_var = fig.add_subplot(2, 2, 3)
+    axis_generation_var.axis("off")
+    # axis_generation_var.set_title("Variance Render")
+    axis_generation_mean = fig.add_subplot(2, 2, 4)
+    axis_generation_mean.axis("off")
+    # axis_generation_mean.set_title("Mean Render")
     
     
     # iterator
@@ -204,7 +266,8 @@ def main():
     with chainer.no_backprop_mode():
         
         iterator  = chainer.iterators.SerialIterator(dataset,batch_size=1)
-        for i in range(len(iterator.dataset)):
+        # ipdb.set_trace()
+        for i in tqdm(range(len(iterator.dataset))):
             animation_frame_array = []
             images, viewpoints = np.array([iterator.dataset[i]["image"]]),np.array([iterator.dataset[i]["viewpoint"]])
             
@@ -241,8 +304,9 @@ def main():
             # Neural rendering
             render(representation, camera_distance, camera_position_y,
                     fps * 2, animation_frame_array)
+            # render_wVar(representation, camera_distance, camera_position_y,
+            #         fps * 2, animation_frame_array, 100)
             
-            # ipdb.set_trace()
             for n in range(total_observations_per_scene):
                 observation_indices = random_observation_view_indices[:n +
                                                                         1]
@@ -254,13 +318,16 @@ def main():
                     observed_images[None, :n + 1],
                     observed_viewpoints[None, :n + 1])
                 # Neural rendering
-                render(
-                    representation,
-                    camera_distance,
-                    camera_position_y,
-                    fps // 2,
-                    animation_frame_array,
-                    rotate_camera=False)
+                render(representation, camera_distance, camera_position_y,
+                    fps // 2, animation_frame_array,rotate_camera=False)
+                # render_wVar(
+                #     representation,
+                #     camera_distance,
+                #     camera_position_y,
+                #     fps // 2,
+                #     animation_frame_array,
+                #     100,
+                #     rotate_camera=False)
             
             # Scene encoder with all given observations
             representation = model.compute_observation_representation(
@@ -271,6 +338,8 @@ def main():
             # Neural rendering
             render(representation, camera_distance, camera_position_y,
                     fps * 6, animation_frame_array)
+            # render_wVar(representation, camera_distance, camera_position_y,
+            #         fps * 6, animation_frame_array,100)
             
             anim = animation.ArtistAnimation(
                         fig,
@@ -279,18 +348,18 @@ def main():
                         blit=True,
                         repeat_delay=0)
 
-            # anim.save(
-            #     "{}/shepard_matzler_observations_{}.gif".format(
-            #         args.figure_directory, file_number),
-            #     writer="imagemagick",
-            #     fps=fps)
             anim.save(
-                "{}/rooms_ring_camera_observations_{}.mp4".format(
+                "{}/observations_{}.gif".format(
                     args.figure_directory, file_number),
-                writer="ffmpeg",
+                writer="imagemagick",
                 fps=10)
+            # ipdb.set_trace()
+            # anim.save(
+            #     "{}/rooms_ring_camera_observations_{}.mp4".format(
+            #         args.figure_directory, file_number),
+            #     writer='ffmpeg',
+            #     fps=10)
             
-            # sys.exit(1)
             file_number += 1
 
 if __name__ == "__main__":
@@ -301,5 +370,5 @@ if __name__ == "__main__":
     parser.add_argument("--figure-directory",type=str, required=True)
     parser.add_argument("--gpu-device",type=int,default=0)
     args = parser.parse_args()
-    sys.exit(main())
+    main()
     

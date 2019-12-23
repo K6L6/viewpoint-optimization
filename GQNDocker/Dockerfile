@@ -5,24 +5,26 @@ FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
 WORKDIR /GQN
 
 # Install any needed packages specified in requirements.txt
-RUN apt-get update\
-    && apt-get install -y software-properties-common\ 
+RUN apt-get update && apt install -y software-properties-common\ 
 			libopenmpi-dev\
-			ffmpeg\
 			imagemagick\ 
 			wget\ 
 			mesa-utils\
 			pkg-config\
-			git-core
+			git-core\
+			ffmpeg\
+			x264
 
 RUN useradd -m -r -u 17001 -g root lukman
 USER lukman
 WORKDIR /home/lukman
 
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh &&\
 	bash miniconda.sh -b -p ./miniconda
 
 RUN . ./miniconda/bin/activate && conda update -y conda
+RUN export PATH=/home/lukman/miniconda/bin:$PATH
+
 RUN . ./miniconda/bin/activate && conda install -y matplotlib \
 	numpy \
 	h5py \
@@ -32,7 +34,7 @@ RUN . ./miniconda/bin/activate && conda install -y matplotlib \
 RUN . ./miniconda/bin/activate && pip install chainer\
 		    cupy-cuda100\
 			tensorflow-gpu\
-			tensorflow more_itertools\
+			tensorflow more-itertools\
 		    argparse\
 		    uuid\
 		    tabulate\
@@ -43,8 +45,3 @@ RUN . ./miniconda/bin/activate && pip install chainer\
 			gsutil \
 			scikit-image \
 			tensorboardx
-
-
-# RUN . /miniconda/bin/activate && pip install 
-
-
