@@ -169,55 +169,84 @@ def main():
                total_frames,
                animation_frame_array,
                no_of_samples,
-               rotate_camera=True):
+               rotate_camera=True,
+               wVariance=True):
         
-        # viewpoint_file = open('viewpoints.txt','w')
-        for t in range(0, total_frames):
-            artist_array = [
-                axis_observations.imshow(
-                    cv2.cvtColor(make_uint8(axis_observations_image),cv2.COLOR_BGR2RGB),
-                    interpolation="none",
-                    animated=True)
-            ]
+        highest_var = 0.0
+        with open("queries.txt",'w') as file_wviews, open("variance.txt",'w') as file_wvar:
+            for t in range(0, total_frames):
+                artist_array = [
+                    axis_observations.imshow(
+                        cv2.cvtColor(make_uint8(axis_observations_image),cv2.COLOR_BGR2RGB),
+                        interpolation="none",
+                        animated=True)
+                ]
 
-            horizontal_angle_rad = compute_camera_angle_at_frame(t)
-            if rotate_camera == False:
-                horizontal_angle_rad = compute_camera_angle_at_frame(0)
+                horizontal_angle_rad = compute_camera_angle_at_frame(t)
+                if rotate_camera == False:
+                    horizontal_angle_rad = compute_camera_angle_at_frame(0)
 
-            query_viewpoints = rotate_query_viewpoint(
-                horizontal_angle_rad, camera_distance, camera_position_y)
-            
-            generated_images = cp.squeeze(cp.array(model.generate_images(query_viewpoints,
-                                                    representation,no_of_samples)))
-            # ipdb.set_trace()
-            var_image = cp.var(generated_images,axis=0)
-            mean_image = cp.mean(generated_images,axis=0)
-            mean_image = make_uint8(np.squeeze(chainer.backends.cuda.to_cpu(mean_image)))
-            mean_image_rgb = cv2.cvtColor(mean_image, cv2.COLOR_BGR2RGB)
-            
-            var_image = chainer.backends.cuda.to_cpu(var_image)
+                query_viewpoints = rotate_query_viewpoint(
+                    horizontal_angle_rad, camera_distance, camera_position_y)
+                
+                q_x, q_y, q_z, _, _, _, _ = query_viewpoints[0]
+                
+                file_wviews.writelines("".join(str(q_x))+", "+
+                                        "".join(str(q_y))+", "+
+                                        "".join(str(q_z))+"\n")
 
-            # grayscale
-            r,g,b = var_image
-            gray_var_image = 0.2989*r+0.5870*g+0.1140*b            
-            # thresholding Otsu's method
-            thresh = threshold_otsu(gray_var_image)
-            var_binary = gray_var_image > thresh
+                generated_images = cp.squeeze(cp.array(model.generate_images(query_viewpoints,
+                                                        representation,no_of_samples)))
+                # ipdb.set_trace()
+                var_image = cp.var(generated_images,axis=0)
+                mean_image = cp.mean(generated_images,axis=0)
+                mean_image = make_uint8(np.squeeze(chainer.backends.cuda.to_cpu(mean_image)))
+                mean_image_rgb = cv2.cvtColor(mean_image, cv2.COLOR_BGR2RGB)
+                
+                var_image = chainer.backends.cuda.to_cpu(var_image)
 
-            artist_array.append(
-                axis_generation_var.imshow(
-                    var_binary,
-                    cmap=plt.cm.gray,
-                    interpolation="none",
-                    animated=True))
+                # grayscale
+                r,g,b = var_image
+                gray_var_image = 0.2989*r+0.5870*g+0.1140*b            
+                # thresholding Otsu's method
+                # thresh = threshold_otsu(gray_var_image)
+                # var_binary = gray_var_image > thresh
 
-            artist_array.append(
-                axis_generation_mean.imshow(
-                    mean_image_rgb,
-                    interpolation="none",
-                    animated=True))
+                # hill climb algorthm for searching highest variance
+                cur_var = np.mean(gray_var_image)
+                if cur_var>highest_var:
+                    highest_var = cur_var
 
-            animation_frame_array.append(artist_array)
+                    if wVariance==True:
+                        print('highest variance: '+str(highest_var)+', viewpoint: '+str(query_viewpoints[0]))
+                        highest_var_vp = query_viewpoints[0]
+                        file_wvar.writelines('highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp)+'\n')
+                    else:
+                        pass
+
+                artist_array.append(
+                    axis_generation_var.imshow(
+                        gray_var_image,
+                        cmap=plt.cm.gray,
+                        interpolation="none",
+                        animated=True))
+
+                artist_array.append(
+                    axis_generation_mean.imshow(
+                        mean_image_rgb,
+                        interpolation="none",
+                        animated=True))
+
+                animation_frame_array.append(artist_array)
+
+            if wVariance==True:
+                print('final highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp))
+                file_wvar.writelines('final highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp)+'\n')
+            else:
+                pass
+
+        file_wviews.close()
+        file_wvar.close()
     
     # loading dataset & model
     cuda.get_device(args.gpu_device).use()
@@ -254,10 +283,10 @@ def main():
     axis_generation.set_title("Rendered Predictions")
     axis_generation_var = fig.add_subplot(2, 2, 3)
     axis_generation_var.axis("off")
-    # axis_generation_var.set_title("Variance Render")
+    axis_generation_var.set_title("Variance Render")
     axis_generation_mean = fig.add_subplot(2, 2, 4)
     axis_generation_mean.axis("off")
-    # axis_generation_mean.set_title("Mean Render")
+    axis_generation_mean.set_title("Mean Render")
     
     
     # iterator
@@ -302,10 +331,10 @@ def main():
                 [observed_image])
 
             # Neural rendering
-            render(representation, camera_distance, camera_position_y,
-                    fps * 2, animation_frame_array)
-            # render_wVar(representation, camera_distance, camera_position_y,
-            #         fps * 2, animation_frame_array, 100)
+            # render(representation, camera_distance, camera_position_y,
+            #         fps * 2, animation_frame_array)
+            render_wVar(representation, camera_distance, camera_position_y,
+                    fps * 2, animation_frame_array, 100)
             
             for n in range(total_observations_per_scene):
                 observation_indices = random_observation_view_indices[:n +
@@ -318,16 +347,18 @@ def main():
                     observed_images[None, :n + 1],
                     observed_viewpoints[None, :n + 1])
                 # Neural rendering
-                render(representation, camera_distance, camera_position_y,
-                    fps // 2, animation_frame_array,rotate_camera=False)
-                # render_wVar(
-                #     representation,
-                #     camera_distance,
-                #     camera_position_y,
-                #     fps // 2,
-                #     animation_frame_array,
-                #     100,
-                #     rotate_camera=False)
+                # render(representation, camera_distance, camera_position_y,
+                #     fps // 2, animation_frame_array,rotate_camera=False)
+                render_wVar(
+                    representation,
+                    camera_distance,
+                    camera_position_y,
+                    fps // 2,
+                    animation_frame_array,
+                    100,
+                    rotate_camera=False,
+                    wVariance=False)
+
             
             # Scene encoder with all given observations
             representation = model.compute_observation_representation(
@@ -336,10 +367,10 @@ def main():
                                     1])
 
             # Neural rendering
-            render(representation, camera_distance, camera_position_y,
-                    fps * 6, animation_frame_array)
-            # render_wVar(representation, camera_distance, camera_position_y,
-            #         fps * 6, animation_frame_array,100)
+            # render(representation, camera_distance, camera_position_y,
+            #         fps * 6, animation_frame_array)
+            render_wVar(representation, camera_distance, camera_position_y,
+                    fps * 6, animation_frame_array,100)
             
             anim = animation.ArtistAnimation(
                         fig,
@@ -361,6 +392,10 @@ def main():
             #     fps=10)
             
             file_number += 1
+
+# write the code to choose and output next viewpoint 
+# better to keep the variance map in grayscale instead of using Otsu's threshold
+# write the code to move the task arm to approach the object from a suitable grasping point
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

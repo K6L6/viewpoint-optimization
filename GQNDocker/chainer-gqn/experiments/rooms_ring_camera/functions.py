@@ -12,5 +12,5 @@ def compute_yaw_and_pitch(vec):
     else:
         yaw = math.atan2(x , z)
     pitch = -math.asin(y / norm)
-    pitch = 0
+
     return yaw, pitch
