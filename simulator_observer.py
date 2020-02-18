@@ -31,7 +31,7 @@ from baxter_core_msgs.srv import (
 class GetImage():
    def __init__(self):
       self.bridge = CvBridge()
-      self.sub = rospy.Subscriber('/cameras/cam_link/image',Image, self.callback)
+      self.sub = rospy.Subscriber('/cameras/cam_link/image',Image, self.callback, queue_size=1, buff_size=2**24)
       self.current_img = None
 
    def callback(self,data):

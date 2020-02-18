@@ -1,15 +1,23 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import os
 import sys
+import math
 import argparse
 
 import numpy as np
+import cupy as cp
 import tf
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import chainer
-import chainer.functions as cf
+#import chainer.functions as cf
+import sys
 from chainer.backends import cuda
+
+import gqn
+from gqn.preprocessing import make_uint8,preprocess_images
+from model_chain2 import Model
+from hyperparams import HyperParameters
 import ipdb
 
 import rospy
@@ -41,11 +49,6 @@ from baxter_core_msgs.srv import (
     SolvePositionIKRequest,
 )
 
-import gqn
-from gqn.processing import make_uint8, preprocess_images 
-from model_chain import Model
-from functions import compute_yaw_and_pitch
-
 # WIP in Baxter Simulator
 # obtain image and viewpoint from end-effector
 
@@ -56,6 +59,7 @@ parser.add_argument("--gpu-device", type=int, default=0)
 args = parser.parse_args()
 
 def compute_camera_angle_at_frame(t,total_frames):
+    print("at frame: "+str(t)+" total frames: "+str(total_frames))
     return t*2*np.pi/total_frames
 
 def compute_yaw_and_pitch(vec):
@@ -76,8 +80,8 @@ def rotate_query_viewpoint(horizontal_angle_rad, camera_distance,
                                camera_position_y):
     camera_position = np.array([
         camera_distance * math.sin(horizontal_angle_rad),  # x
+        camera_position_y,
         camera_distance * math.cos(horizontal_angle_rad),
-        camera_position_z,  # z
     ])
     center = np.array((0, 0, camera_position_z))
     camera_direction = camera_position - center
@@ -98,48 +102,46 @@ def rotate_query_viewpoint(horizontal_angle_rad, camera_distance,
                                         (1, ) + query_viewpoints.shape)
     return query_viewpoints
 
-def gazeboPose2GQN_VP(camera_pos):
-    x_0,y_0,z_0 = 0.56, 0.17, 0.778 #obj_center
-    _x, _y, _z = camera_pos
-
-    radius = np.sqrt(np.square(_x-x_0)+np.square(_y-y_0))
-    x, y, z = _x-x_0, _y-y_0, _z-z_0
+def gazeboPose2GQN_VP(camera_pos,offset):
+    
+    x, y, z = camera_pos - offset
 
     norm = np.linalg.norm([x,y,z]) #radius?
     yaw, pitch = compute_yaw_and_pitch([x,y,z])
-    # some calculation to change to unit vectors I think
-    # x = np.sin(yaw)*norm #needs to be checked
-    # y = np.cos(yaw)*norm #need to check
-    # z = np.cos(pitch)*norm #need to check
+    
     GQN_viewpoint = [x, y, z, np.sin(yaw), np.cos(yaw), np.sin(pitch), np.cos(pitch)]
     
     return GQN_viewpoint
 
-def GQN_VP2gazeboPose(gqn_pos):
-    add_x, add_y, add_z = 0.77123483834084117, 0.18078860277248254, -0.09884760960958872 # diff between simulator coordinates and gqn vp coordinates
-    _x, _y, _z = gqn_pos
-    x = _x + add_x
-    y = _y + add_y
-    z = _z + add_z
+def GQN_VP2gazeboPose(gqn_pos,offset):
+    x, y, z = gqn_pos + offset
 
     gazebo_pose = x, y, z
     return gazebo_pose
 
 if __name__ == "__main__":
+    #class instance & init node
+    rospy.init_node('test',anonymous=True)
+    limb = 'left'
+    Bax = MoveBaxter(limb)
+    im = GetImage()
+    
     # load model
-    cuda.get_device(args.gpu_device).use()
-    xp=cp
+    my_gpu = args.gpu_device
+    if my_gpu < 0:
+         xp=np
+    else:
+        cuda.get_device(args.gpu_device).use()
+        xp=cp
     hyperparams = HyperParameters()
     assert hyperparams.load(args.snapshot_directory)
 
     model = Model(hyperparams)
     chainer.serializers.load_hdf5(args.snapshot_file, model)
-    model.to_gpu()
-
-    ## init node
-    rospy.init_node('test',anonymous=True)
-    Bax = MoveBaxter(limb)
-
+    if my_gpu > -1:
+        model.to_gpu()
+    
+    ## explicit starting position
     starting_joint_angles = {'left_w0': 0.6699952259595108,
                              'left_w1': 1.030009435085784,
                              'left_w2': -0.4999997247485215,
@@ -151,34 +153,50 @@ if __name__ == "__main__":
     Bax._guarded_move_to_joint_position(starting_joint_angles)
     init_pose = Pose()
     init_pose.position.x, init_pose.position.y, init_pose.position.z, init_pose.orientation.x, init_pose.orientation.y, init_pose.orientation.z, init_pose.orientation.w = Bax.get_current_pose()
-    init_pose.position.x -= 0.2
-    init_pose.position.z -= 0.37
-    x_0, y_0, z_0 = init_pose.position.x, init_pose.position.y, init_pose.position.z # x,y,z -> 2,0,0
+    
     ## object to store movement of end-effector
     move = Pose()
     move.position.x, move.position.y, move.position.z, move.orientation.x, move.orientation.y, move.orientation.z, move.orientation.w = Bax.get_current_pose()
-
-    observed_viewpoint = gazeboPose2GQN_VP([move.position.x, move.position.y, move.position.z])
+    move.position.x -= 0.2
+    
+    next_joint_angles = Bax.get_joint_angles(move)
+    Bax._guarded_move_to_joint_position(next_joint_angles)
+    move.position.z -=0.37
+    next_joint_angles = Bax.get_joint_angles(move)
+    Bax._guarded_move_to_joint_position(next_joint_angles)
+    
+    offset = np.asarray([move.position.x, move.position.y, move.position.z]) - np.asarray([-0.2,0.0,0.0])
+    #ipdb.set_trace()
+    observed_viewpoint = np.asarray(gazeboPose2GQN_VP([move.position.x, move.position.y, move.position.z],offset),dtype=np.float32)
+    observed_viewpoint = np.expand_dims(np.expand_dims(observed_viewpoint, axis=0), axis=0)
+    
+    #ipdb.set_trace()
+    camera_distance = np.mean(np.linalg.norm(observed_viewpoint[:,:,:3],axis=2))
+    camera_position_z = np.mean(observed_viewpoint[:,:,1])
     
     # get current observed image from simulator
-    im = GetImage()
-    observed_image = im.get()
+    observed_image = np.expand_dims(np.expand_dims(np.asarray(im.get()),axis=0),axis=0)
+    observed_image = observed_image.transpose((0,1,4,2,3)).astype(np.float32)
+    observed_image = preprocess_images(observed_image)
 
     # create representation and generate uncertainty map of environment [1000 viewpoints?]
-    query_viewpoints = 1000
-    representation = model.compute_observation_representation(observed_image, observed_viewpoints)
+    total_frames = 100
+    
+    representation = model.compute_observation_representation(observed_image, observed_viewpoint)
 
     # get predictions
     highest_var = 0.0
     no_of_samples = 100
 
-    for i in range(predictions_in_map):
-        horizontal_angle_rad = compute_camera_angle_at_frame(i, predictions_in_map)
+    for i in range(0,total_frames):
+        horizontal_angle_rad = compute_camera_angle_at_frame(i, total_frames)
+        
         query_viewpoints = rotate_query_viewpoint(
                     horizontal_angle_rad, camera_distance, camera_position_z)
-        generated_images = cp.squeeze(cp.array(model.generate_images(query_viewpoints,
+        #ipdb.set_trace()
+        generated_images = xp.squeeze(xp.array(model.generate_images(query_viewpoints,
                                                             representation,no_of_samples)))
-        var_image = cp.var(generated_images,axis=0)
+        var_image = xp.var(generated_images,axis=0)
         var_image = chainer.backends.cuda.to_cpu(var_image)
         # grayscale
         r,g,b = var_image
@@ -188,11 +206,12 @@ if __name__ == "__main__":
         if current_var>highest_var:
             highest_var = current_var
             highest_var_vp = query_viewpoints[0]
-
+    
+    ipdb.set_trace()
     # return next viewpoint and unit vector of end effector based on highest uncertainty found in the uncertainty map
     _x, _y, _z, _, _, _, _ = highest_var_vp
     _yaw, _pitch = compute_yaw_and_pitch([_x, _y, _z])
-    pose_x, pose_y, pose_z = gazeboPose2GQN_VP([_x,_y,_z]) # convert _x, _y, _z to end effector values??
+    pose_x, pose_y, pose_z = GQN_VP2gazeboPose([_x,_y,_z],offset) # convert _x, _y, _z to end effector values??
     quaternion_yaw = [0,0,np.sin(yaw/2),np.cos(yaw/2)]
     quaternion_pitch = [0,np.sin(pitch/2),0,np.cos(pitch/2)]
     move.position.x = pose_x

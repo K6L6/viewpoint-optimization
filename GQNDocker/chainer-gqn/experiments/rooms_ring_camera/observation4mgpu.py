@@ -96,7 +96,7 @@ def main():
         return axis_observations_image
 
     def compute_camera_angle_at_frame(t):
-        return t * 2 * math.pi / (-fps * 2)
+        return t * 2 * math.pi / (fps * 2)
 
     def rotate_query_viewpoint(horizontal_angle_rad, camera_distance,
                                camera_position_y):
