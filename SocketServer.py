@@ -15,9 +15,10 @@ import cupy as cp
 import chainer
 from chainer.backends import cuda
 
+sys.path.append("./../../")
 import gqn
 from gqn.preprocessing import make_uint8, preprocess_images
-from model_chain2 import Model
+from model_chain import Model
 from hyperparams import HyperParameters
 from functions import compute_yaw_and_pitch
 
@@ -31,7 +32,7 @@ def compute_camera_angle_at_frame(t,total_frames):
     print("at frame: "+str(t)+" total frames: "+str(total_frames))
     return t*2*np.pi/total_frames
 
-def gqn_process(data,model):
+def gqn_process():
     # load model
     my_gpu = args.gpu_device
     if my_gpu < 0:
@@ -47,7 +48,7 @@ def gqn_process(data,model):
     if my_gpu > -1:
         model.to_gpu()
 
-    observed_viewpoint, observed_image, offset = data_r.get()
+    observed_viewpoint, observed_image, offset = data_recv.get()
     observed_image = observed_image.transpose((0,1,4,2,3)).astype(np.float32)
     observed_image = preprocess_images(observed_image)
 
@@ -82,7 +83,7 @@ def gqn_process(data,model):
     _x, _y, _z, _, _, _, _ = highest_var_vp
     _yaw, _pitch = compute_yaw_and_pitch([_x, _y, _z])
     next_viewpoint = [_x, _y, _z, _yaw, _pitch]
-    data_s.put(next_viewpoint)
+    data_send.put(next_viewpoint)
 
     return
 
@@ -164,8 +165,8 @@ class SocketServer(threading.Thread):
                     else:
                         try:
                             data = self._receive(sock)
-                            if not (data_s.empty()):
-                                send_data = data_s.get()
+                            if not (data_send.empty()):
+                                send_data = data_send.get()
                                 self._send(sock, send_data)
                         except socket.error:
                             # Client is no longer replying
@@ -204,7 +205,7 @@ if __name__ == "__main__":
     data_send = queue.Queue(maxsize=1)
     socket_server = SocketServer(server_HOST, server_PORT)
     
-    gqn_work = threading.Thread(target=gqn_process, args=(data, model), daemon=True)
+    gqn_work = threading.Thread(target=gqn_process, daemon=True)
     gqn_work.start()
 
     socket_server.start()
