@@ -4,6 +4,7 @@ import socket
 import select
 import struct
 import threading
+import ipdb
 from six.moves import queue
 
 import os
@@ -49,6 +50,10 @@ def gqn_process():
         model.to_gpu()
 
     observed_viewpoint, observed_image, offset = data_recv.get()
+    observed_viewpoint = np.expand_dims(np.expand_dims(np.asarray(observed_viewpoint).astype(np.float32),axis=0),axis=0)
+    observed_image = np.expand_dims(np.expand_dims(np.asarray(observed_image).astype(np.float32),axis=0),axis=0)
+    offset = np.asarray(offset)
+    # ipdb.set_trace()
     observed_image = observed_image.transpose((0,1,4,2,3)).astype(np.float32)
     observed_image = preprocess_images(observed_image)
 
@@ -89,7 +94,7 @@ def gqn_process():
 
 class SocketServer(threading.Thread):
     MAX_WAITING_CONNECTIONS = 5
-    RECV_BUFFER = 4096
+    RECV_BUFFER = 131072 # 2^17
     RECV_MSG_LEN = 4
     def __init__(self, host, port):
         threading.Thread.__init__(self)
@@ -110,11 +115,8 @@ class SocketServer(threading.Thread):
         sock.send(data)
         
     def _receive(self, sock):
-        data = None
-        total_len = 0
-        while total_len < self.RECV_MSG_LEN:
-            msg_len = sock.recv(self.RECV_MSG_LEN)
-            total_len = total_len + len(msg_len)
+        data = sock.recvmsg(self.RECV_BUFFER)
+        data = decode(data[0])
         
         data_recv.put(data)
         return data
