@@ -121,7 +121,7 @@ data = encode([observed_viewpoint.tolist(), observed_image.tolist(), offset.toli
 
 s.sendall(data)
 s.getsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE)
-data_recv=s.recv(1024)
+#data_recv=s.recv(1024)
 #print('received',repr(data))
 # ,observed_viewpoint)
 # data = s.recv()

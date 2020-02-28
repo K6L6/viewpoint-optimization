@@ -33,6 +33,34 @@ def compute_camera_angle_at_frame(t,total_frames):
     print("at frame: "+str(t)+" total frames: "+str(total_frames))
     return t*2*np.pi/total_frames
 
+def rotate_query_viewpoint(horizontal_angle_rad, camera_distance,
+                               camera_position_y,xp):
+    camera_position = np.array([
+        camera_distance * math.sin(horizontal_angle_rad),   # x
+        camera_position_y,
+        camera_distance * math.cos(horizontal_angle_rad),  # z
+    ])
+    center = np.array((0, camera_position_y, 0)) 
+    camera_direction = camera_position - center
+    yaw, pitch = compute_yaw_and_pitch(camera_direction)
+        
+    query_viewpoints = xp.array(
+        (
+            camera_position[0],
+            camera_position[1],
+            camera_position[2],
+            math.cos(yaw),
+            math.sin(yaw),
+            math.cos(pitch),
+            math.sin(pitch),
+        ),
+        dtype=np.float32,
+    )
+    query_viewpoints = xp.broadcast_to(query_viewpoints,
+                                        (1, ) + query_viewpoints.shape)
+
+    return query_viewpoints
+
 def gqn_process():
     # load model
     my_gpu = args.gpu_device
@@ -48,11 +76,15 @@ def gqn_process():
     chainer.serializers.load_hdf5(args.snapshot_file, model)
     if my_gpu > -1:
         model.to_gpu()
+    chainer.print_runtime_info()
 
     observed_viewpoint, observed_image, offset = data_recv.get()
     observed_viewpoint = np.expand_dims(np.expand_dims(np.asarray(observed_viewpoint).astype(np.float32),axis=0),axis=0)
     observed_image = np.expand_dims(np.expand_dims(np.asarray(observed_image).astype(np.float32),axis=0),axis=0)
     offset = np.asarray(offset)
+
+    camera_distance = np.mean(np.linalg.norm(observed_viewpoint[:,:,:3],axis=2))
+    camera_position_z = np.mean(observed_viewpoint[:,:,1])
     # ipdb.set_trace()
     observed_image = observed_image.transpose((0,1,4,2,3)).astype(np.float32)
     observed_image = preprocess_images(observed_image)
@@ -69,7 +101,7 @@ def gqn_process():
         horizontal_angle_rad = compute_camera_angle_at_frame(i, total_frames)
         
         query_viewpoints = rotate_query_viewpoint(
-                    horizontal_angle_rad, camera_distance, camera_position_z)
+                    horizontal_angle_rad, camera_distance, camera_position_z,xp)
         
         generated_images = xp.squeeze(xp.array(model.generate_images(query_viewpoints,
                                                             representation,no_of_samples)))
@@ -116,6 +148,7 @@ class SocketServer(threading.Thread):
         
     def _receive(self, sock):
         data = sock.recvmsg(self.RECV_BUFFER)
+        # ipdb.set_trace()
         data = decode(data[0])
         
         data_recv.put(data)

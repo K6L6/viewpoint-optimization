@@ -48,7 +48,7 @@ def gqn_process():
     chainer.serializers.load_hdf5(args.snapshot_file, model)
     if my_gpu > -1:
         model.to_gpu()
-
+    
     observed_viewpoint, observed_image, offset = data_recv.get()
     observed_viewpoint = np.expand_dims(np.expand_dims(np.asarray(observed_viewpoint).astype(np.float32),axis=0),axis=0)
     observed_image = np.expand_dims(np.expand_dims(np.asarray(observed_image).astype(np.float32),axis=0),axis=0)
