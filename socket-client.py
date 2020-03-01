@@ -123,15 +123,21 @@ s.sendall(data)
 # s.getsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE)
 RECV_BUFFER = 131072
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-s.bind((HOST, PORT))
-while running:
+#s.bind((HOST, PORT))
+while True:
     try:
         accept_sock = s.accept()
         server_socket, server_address = accept_sock
 
         data_r = s.recvmsg(RECV_BUFFER)
+        data_r = decode(data_r[0])
+	if data_r == None:
+            continue
+        else:    
+            break
     except socket.error:
         print("some error")
+    
 
 print(data_r)
 

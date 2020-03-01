@@ -124,8 +124,6 @@ def gqn_process():
     next_viewpoint = [_x, _y, _z, _yaw, _pitch]
     data_send.put(next_viewpoint)
 
-    return
-
 class SocketServer(threading.Thread):
     MAX_WAITING_CONNECTIONS = 5
     RECV_BUFFER = 131072 # 2^17
@@ -146,6 +144,7 @@ class SocketServer(threading.Thread):
         
     @classmethod
     def _send(cls, sock, data):
+        data=encode(data)
         sock.send(data)
         
     def _receive(self, sock):
