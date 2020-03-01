@@ -96,25 +96,27 @@ def gqn_process():
     # get predictions
     highest_var = 0.0
     no_of_samples = 100
-
-    for i in range(0,total_frames):
-        horizontal_angle_rad = compute_camera_angle_at_frame(i, total_frames)
-        
-        query_viewpoints = rotate_query_viewpoint(
-                    horizontal_angle_rad, camera_distance, camera_position_z,xp)
-        
-        generated_images = xp.squeeze(xp.array(model.generate_images(query_viewpoints,
-                                                            representation,no_of_samples)))
-        var_image = xp.var(generated_images,axis=0)
-        var_image = chainer.backends.cuda.to_cpu(var_image)
-        # grayscale
-        r,g,b = var_image
-        gray_var_image = 0.2989*r+0.5870*g+0.1140*b
-        current_var = np.mean(gray_var_image)
-        
-        if current_var>highest_var:
-            highest_var = current_var
-            highest_var_vp = query_viewpoints[0]
+    try:
+        for i in range(0,total_frames):
+            horizontal_angle_rad = compute_camera_angle_at_frame(i, total_frames)
+            
+            query_viewpoints = rotate_query_viewpoint(
+                        horizontal_angle_rad, camera_distance, camera_position_z,xp)
+            
+            generated_images = xp.squeeze(xp.array(model.generate_images(query_viewpoints,
+                                                                representation,no_of_samples)))
+            var_image = xp.var(generated_images,axis=0)
+            var_image = chainer.backends.cuda.to_cpu(var_image)
+            # grayscale
+            r,g,b = var_image
+            gray_var_image = 0.2989*r+0.5870*g+0.1140*b
+            current_var = np.mean(gray_var_image)
+            
+            if current_var>highest_var:
+                highest_var = current_var
+                highest_var_vp = query_viewpoints[0]
+    except KeyboardInterrupt:
+        print('interrupt')
 
     # return next viewpoint and unit vector of end effector based on highest uncertainty found in the uncertainty map
     _x, _y, _z, _, _, _, _ = highest_var_vp
@@ -239,10 +241,10 @@ if __name__ == "__main__":
     data_recv = queue.Queue(maxsize=1)
     data_send = queue.Queue(maxsize=1)
     socket_server = SocketServer(server_HOST, server_PORT)
-    
+
     gqn_work = threading.Thread(target=gqn_process, daemon=True)
     gqn_work.start()
 
     socket_server.start()
-
     gqn_work.join()
+    

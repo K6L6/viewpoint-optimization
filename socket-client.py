@@ -118,9 +118,23 @@ observed_image = np.asarray(im.get())
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
 data = encode([observed_viewpoint.tolist(), observed_image.tolist(), offset.tolist()])
-
 s.sendall(data)
-s.getsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE)
+
+# s.getsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE)
+RECV_BUFFER = 131072
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind((HOST, PORT))
+while running:
+    try:
+        accept_sock = s.accept()
+        server_socket, server_address = accept_sock
+
+        data_r = s.recvmsg(RECV_BUFFER)
+    except socket.error:
+        print("some error")
+
+print(data_r)
+
 #data_recv=s.recv(1024)
 #print('received',repr(data))
 # ,observed_viewpoint)
