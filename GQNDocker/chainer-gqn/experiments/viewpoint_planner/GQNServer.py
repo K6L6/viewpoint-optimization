@@ -201,6 +201,7 @@ class SocketServer(threading.Thread):
                     else:
                         try:
                             data = self._receive(sock)
+                            ipdb.set_trace()
                             if not (data_send.empty()):
                                 send_data = data_send.get()
                                 self._send(sock, send_data)
