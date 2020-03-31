@@ -172,81 +172,81 @@ def main():
                rotate_camera=True,
                wVariance=True):
         
-        highest_var = 0.0
-        with open("queries.txt",'w') as file_wviews, open("variance.txt",'w') as file_wvar:
-            for t in range(0, total_frames):
-                artist_array = [
-                    axis_observations.imshow(
-                        cv2.cvtColor(make_uint8(axis_observations_image),cv2.COLOR_BGR2RGB),
-                        interpolation="none",
-                        animated=True)
-                ]
+        # highest_var = 0.0
+        # with open("queries.txt",'w') as file_wviews, open("variance.txt",'w') as file_wvar:
+        for t in range(0, total_frames):
+            artist_array = [
+                axis_observations.imshow(
+                    cv2.cvtColor(make_uint8(axis_observations_image),cv2.COLOR_BGR2RGB),
+                    interpolation="none",
+                    animated=True)
+            ]
 
-                horizontal_angle_rad = compute_camera_angle_at_frame(t)
-                if rotate_camera == False:
-                    horizontal_angle_rad = compute_camera_angle_at_frame(0)
+            horizontal_angle_rad = compute_camera_angle_at_frame(t)
+            if rotate_camera == False:
+                horizontal_angle_rad = compute_camera_angle_at_frame(0)
 
-                query_viewpoints = rotate_query_viewpoint(
-                    horizontal_angle_rad, camera_distance, camera_position_y)
-                
-                q_x, q_y, q_z, _, _, _, _ = query_viewpoints[0]
-                
-                file_wviews.writelines("".join(str(q_x))+", "+
-                                        "".join(str(q_y))+", "+
-                                        "".join(str(q_z))+"\n")
+            query_viewpoints = rotate_query_viewpoint(
+                horizontal_angle_rad, camera_distance, camera_position_y)
+            
+            # q_x, q_y, q_z, _, _, _, _ = query_viewpoints[0]
+            
+            # file_wviews.writelines("".join(str(q_x))+", "+
+            #                         "".join(str(q_y))+", "+
+            #                         "".join(str(q_z))+"\n")
 
-                generated_images = cp.squeeze(cp.array(model.generate_images(query_viewpoints,
-                                                        representation,no_of_samples)))
-                # ipdb.set_trace()
-                var_image = cp.var(generated_images,axis=0)
-                mean_image = cp.mean(generated_images,axis=0)
-                mean_image = make_uint8(np.squeeze(chainer.backends.cuda.to_cpu(mean_image)))
-                mean_image_rgb = cv2.cvtColor(mean_image, cv2.COLOR_BGR2RGB)
-                
-                var_image = chainer.backends.cuda.to_cpu(var_image)
+            generated_images = cp.squeeze(cp.array(model.generate_images(query_viewpoints,
+                                                    representation,no_of_samples)))
+            # ipdb.set_trace()
+            var_image = cp.var(generated_images,axis=0)
+            mean_image = cp.mean(generated_images,axis=0)
+            mean_image = make_uint8(np.squeeze(chainer.backends.cuda.to_cpu(mean_image)))
+            mean_image_rgb = cv2.cvtColor(mean_image, cv2.COLOR_BGR2RGB)
+            
+            var_image = chainer.backends.cuda.to_cpu(var_image)
 
-                # grayscale
-                r,g,b = var_image
-                gray_var_image = 0.2989*r+0.5870*g+0.1140*b            
-                # thresholding Otsu's method
-                # thresh = threshold_otsu(gray_var_image)
-                # var_binary = gray_var_image > thresh
+            # grayscale
+            r,g,b = var_image
+            gray_var_image = 0.2989*r+0.5870*g+0.1140*b            
+            # thresholding Otsu's method
+            # thresh = threshold_otsu(gray_var_image)
+            # var_binary = gray_var_image > thresh
 
-                # hill climb algorthm for searching highest variance
-                cur_var = np.mean(gray_var_image)
-                if cur_var>highest_var:
-                    highest_var = cur_var
+            ## hill climb algorthm for searching highest variance
+            # cur_var = np.mean(gray_var_image)
+            # if cur_var>highest_var:
+            #     highest_var = cur_var
 
-                    if wVariance==True:
-                        print('highest variance: '+str(highest_var)+', viewpoint: '+str(query_viewpoints[0]))
-                        highest_var_vp = query_viewpoints[0]
-                        file_wvar.writelines('highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp)+'\n')
-                    else:
-                        pass
+            #     if wVariance==True:
+            #         print('highest variance: '+str(highest_var)+', viewpoint: '+str(query_viewpoints[0]))
+            #         highest_var_vp = query_viewpoints[0]
+            #         file_wvar.writelines('highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp)+'\n')
+            #     else:
+            #         pass
 
-                artist_array.append(
-                    axis_generation_var.imshow(
-                        gray_var_image,
-                        cmap=plt.cm.gray,
-                        interpolation="none",
-                        animated=True))
+            artist_array.append(
+                axis_generation_var.imshow(
+                    gray_var_image,
+                    cmap=plt.cm.gray,
+                    interpolation="none",
+                    animated=True))
 
-                artist_array.append(
-                    axis_generation_mean.imshow(
-                        mean_image_rgb,
-                        interpolation="none",
-                        animated=True))
+            artist_array.append(
+                axis_generation_mean.imshow(
+                    mean_image_rgb,
+                    interpolation="none",
+                    animated=True))
 
-                animation_frame_array.append(artist_array)
+            animation_frame_array.append(artist_array)
 
-            if wVariance==True:
-                print('final highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp))
-                file_wvar.writelines('final highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp)+'\n')
-            else:
-                pass
+            # if wVariance==True:
+            #     print('final highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp))
+            #     file_wvar.writelines('final highest variance: '+str(highest_var)+', viewpoint: '+str(highest_var_vp)+'\n')
+            # else:
+            #     pass
 
-        file_wviews.close()
-        file_wvar.close()
+        # file_wviews.close()
+        # file_wvar.close()
     
     # loading dataset & model
     cuda.get_device(args.gpu_device).use()

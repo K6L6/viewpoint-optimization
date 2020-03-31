@@ -5,7 +5,10 @@ import numpy as np
 import socket
 import json
 import sys
+from time import sleep
 import ipdb
+import cPickle as pickle
+from six.moves import queue
 
 import rospy
 import rospkg
@@ -51,10 +54,10 @@ def compute_yaw_and_pitch(vec):
     return yaw, pitch
 
 def encode(data):
-    return json.dumps(data)
+    return pickle.dumps(data,protocol=2)
 
 def decode(data):
-    return json.loads(data)
+    return pickle.loads(data)
 
 def gazeboPose2GQN_VP(camera_pos,offset):
     
@@ -115,31 +118,38 @@ observed_image = np.asarray(im.get())
 #observed_image = np.expand_dims(np.expand_dims(np.asarray(im.get()),axis=0),axis=0)
 
 # send image and viewpoint to GQN
+
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((HOST, PORT))
-data = encode([observed_viewpoint.tolist(), observed_image.tolist(), offset.tolist()])
-s.sendall(data)
+while True:    
+    try:
+        s.connect((HOST, PORT))
+        break
+    except socket.error:
+        print('not alive')
+        sleep(3)
+        continue
+    
+data = [observed_viewpoint, observed_image, offset]
+s.send(encode(data))
 
 # s.getsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE)
 RECV_BUFFER = 131072
 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 #s.bind((HOST, PORT))
+data_r = queue.Queue(maxsize=1)
 while True:
     try:
-        accept_sock = s.accept()
-        server_socket, server_address = accept_sock
-
-        data_r = s.recvmsg(RECV_BUFFER)
-        data_r = decode(data_r[0])
-	if data_r == None:
-            continue
-        else:    
-            break
+        data = s.recv(RECV_BUFFER)
+        data_r.put(decode(data))
+        if not data: break
+        
     except socket.error:
-        print("some error")
-    
+        s.close()
+        print("communication cut")
+        break
+         
 
-print(data_r)
+print(data_r.get())
 
 #data_recv=s.recv(1024)
 #print('received',repr(data))
