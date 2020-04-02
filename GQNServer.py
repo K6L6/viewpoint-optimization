@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import json
+import logging
 import socket
 import select
 import struct
+from time import sleep
 import threading
 import ipdb
+import pickle
 from six.moves import queue
 
 import os
@@ -24,23 +27,23 @@ from hyperparams import HyperParameters
 from functions import compute_yaw_and_pitch
 
 def encode(data):
-    return json.dumps(data)
+    return pickle.dumps(data,protocol=2)
 
 def decode(data):
-    return json.loads(data)
+    return pickle.loads(data,encoding='bytes')
 
 def compute_camera_angle_at_frame(t,total_frames):
-    print("at frame: "+str(t)+" total frames: "+str(total_frames))
+    logging.info("at frame: "+str(t)+" total frames: "+str(total_frames))
     return t*2*np.pi/total_frames
 
 def rotate_query_viewpoint(horizontal_angle_rad, camera_distance,
                                camera_position_y,xp):
-    camera_position = np.array([
+    camera_position = xp.array([
         camera_distance * math.sin(horizontal_angle_rad),   # x
         camera_position_y,
         camera_distance * math.cos(horizontal_angle_rad),  # z
     ])
-    center = np.array((0, camera_position_y, 0)) 
+    center = xp.array((0, camera_position_y, 0)) 
     camera_direction = camera_position - center
     yaw, pitch = compute_yaw_and_pitch(camera_direction)
         
@@ -85,17 +88,17 @@ def gqn_process():
 
     camera_distance = np.mean(np.linalg.norm(observed_viewpoint[:,:,:3],axis=2))
     camera_position_z = np.mean(observed_viewpoint[:,:,1])
-    # ipdb.set_trace()
+    
     observed_image = observed_image.transpose((0,1,4,2,3)).astype(np.float32)
     observed_image = preprocess_images(observed_image)
 
     # create representation and generate uncertainty map of environment [1000 viewpoints?]
-    total_frames = 100
+    total_frames = 10
     representation = model.compute_observation_representation(observed_image, observed_viewpoint)
 
     # get predictions
     highest_var = 0.0
-    no_of_samples = 100
+    no_of_samples = 20
     try:
         for i in range(0,total_frames):
             horizontal_angle_rad = compute_camera_angle_at_frame(i, total_frames)
@@ -106,23 +109,27 @@ def gqn_process():
             generated_images = xp.squeeze(xp.array(model.generate_images(query_viewpoints,
                                                                 representation,no_of_samples)))
             var_image = xp.var(generated_images,axis=0)
-            var_image = chainer.backends.cuda.to_cpu(var_image)
+            # var_image = chainer.backends.cuda.to_cpu(var_image)
             # grayscale
-            r,g,b = var_image
-            gray_var_image = 0.2989*r+0.5870*g+0.1140*b
-            current_var = np.mean(gray_var_image)
+            # r,g,b = var_image
+            # gray_var_image = 0.2989*r+0.5870*g+0.1140*b
+            current_var = xp.mean(var_image)
             
             if current_var>highest_var:
                 highest_var = current_var
                 highest_var_vp = query_viewpoints[0]
     except KeyboardInterrupt:
-        print('interrupt')
+        logging.warning('interrupt')
 
     # return next viewpoint and unit vector of end effector based on highest uncertainty found in the uncertainty map
     _x, _y, _z, _, _, _, _ = highest_var_vp
+
     _yaw, _pitch = compute_yaw_and_pitch([_x, _y, _z])
     next_viewpoint = [_x, _y, _z, _yaw, _pitch]
+    next_viewpoint = [chainer.backends.cuda.to_cpu(x) for x in next_viewpoint]
+    next_viewpoint = [float(x) for x in next_viewpoint]
     data_send.put(next_viewpoint)
+    
 
 class SocketServer(threading.Thread):
     MAX_WAITING_CONNECTIONS = 5
@@ -148,37 +155,41 @@ class SocketServer(threading.Thread):
         sock.send(data)
         
     def _receive(self, sock):
-        data = sock.recvmsg(self.RECV_BUFFER)
+        data = sock.recv(self.RECV_BUFFER)
         # ipdb.set_trace()
-        data = decode(data[0])
-        
-        data_recv.put(data)
+        if len(data)==0:
+            pass
+        else:
+            data = decode(data)
+            print(data)
+            data_recv.put(data)
+            logging.info("data received from client.")
         return data
     
     def _broadcast(self, client_socket, client_message):
-        print("Starting broadcast...")
+        logging.info("Starting broadcast...")
         for sock in self.connections:
             not_server = (sock != self.server_socket)
             not_sending_client = (sock != client_socket)
             if not_server and not_sending_client:
                 try:
-                    print("Broadcasting: %s" % client_message)
+                    logging.info("Broadcasting: %s" % client_message)
                     self._send(sock, client_message)
                 except socket.error:
                     # Client no longer replying
-                    print("Closing a socket...")
+                    logging.warning("Closing a socket...")
                     sock.close()
                     self.connections.remove(sock)
 
     def _run(self):
-        print("Starting socket server (%s, %s)..." % (self.host, self.port))
+        logging.info("Starting socket server (%s, %s)..." % (self.host, self.port))
         while self.running:
             try:
                 # Timeout every 60 seconds
                 selection = select.select(self.connections, [], [], 5)
                 read_sock = selection[0]
             except select.error:
-                print("Error!!!")
+                logging.error("Error!!!")
             else:
                 for sock in read_sock:
                     # New connection
@@ -187,11 +198,11 @@ class SocketServer(threading.Thread):
                             accept_sock = self.server_socket.accept()
                             client_socket, client_address = accept_sock
                         except socket.error:
-                            print("Other error!")
+                            logging.error("Other error!")
                             break
                         else:
                             self.connections.append(client_socket)
-                            print("Client (%s, %s) is online" % client_address)
+                            logging.info("Client (%s, %s) is online" % client_address)
                             
                             self._broadcast(client_socket, encode({
                                 "name": "connected",
@@ -201,17 +212,20 @@ class SocketServer(threading.Thread):
                     else:
                         try:
                             data = self._receive(sock)
-                            ipdb.set_trace()
-                            if not (data_send.empty()):
+                            # ipdb.set_trace()
+                            if not len(data)==0:
                                 send_data = data_send.get()
                                 self._send(sock, send_data)
+                            else:
+                                pass
+
                         except socket.error:
                             # Client is no longer replying
                             self._broadcast(sock, encode({
                                 "name": "disconnected",
                                 "data": client_address
                             }))
-                            print("Client (%s, %s) is offline" % client_address)
+                            logging.info("Client (%s, %s) is offline" % client_address)
                             sock.close()
                             self.connections.remove(sock)
                             continue
@@ -234,7 +248,8 @@ if __name__ == "__main__":
     # parser.add_argument("--dataset-directory", type=str, required=True)
     # parser.add_argument("--figure-directory", type=str, required=True)
     args = parser.parse_args()
-
+    logging.basicConfig(
+        level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
     server_HOST = '0.0.0.0' 
     server_PORT = 65432
 
