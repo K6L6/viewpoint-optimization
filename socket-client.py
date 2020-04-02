@@ -70,6 +70,17 @@ def gazeboPose2GQN_VP(camera_pos,offset):
     
     return GQN_viewpoint
 
+def GQN_VP2gazeboPose(camera_pos,offset):
+    
+    x, y, z = camera_pos + offset
+
+    # norm = np.linalg.norm([x,y,z]) #radius?
+    # yaw, pitch = compute_yaw_and_pitch([x,y,z])
+    
+    GQN_viewpoint = [x, y, z]
+    
+    return GQN_viewpoint
+
 #class instance & init node
 rospy.init_node('test',anonymous=True)
 limb = 'left'
@@ -150,11 +161,12 @@ while True:
          
 
 print(data_r.get())
+next_vp = data_r.get()
+x,y,z,yaw,pitch = next_vp
+camera_pos = [x,y,z]
+pose_x, pose_y, pose_z = GQN_VP2gazeboPose(camera_pos,offset)
 
-#data_recv=s.recv(1024)
-#print('received',repr(data))
-# ,observed_viewpoint)
-# data = s.recv()
+
 
 # quaternion_yaw = [0,0,np.sin(yaw/2),np.cos(yaw/2)]
 # quaternion_pitch = [0,np.sin(pitch/2),0,np.cos(pitch/2)]
