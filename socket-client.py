@@ -166,19 +166,17 @@ x,y,z,yaw,pitch = next_vp
 camera_pos = [x,y,z]
 pose_x, pose_y, pose_z = GQN_VP2gazeboPose(camera_pos,offset)
 
+quaternion_yaw = [0,0,np.sin(yaw/2),np.cos(yaw/2)]
+quaternion_pitch = [0,np.sin(pitch/2),0,np.cos(pitch/2)]
+move.position.x = pose_x
+move.position.y = pose_y
+move.position.z = pose_z
+quaternion_1 = tf.transformations.quaternion_multiply(quaternion_0, quaternion_yaw)
+quaternion_1 = tf.transformations.quaternion_multiply(quaternion_1, quaternion_pitch)
+move.orientation.w, move.orientation.x, move.orientation.y, move.orientation.z = quaternion_1
 
-
-# quaternion_yaw = [0,0,np.sin(yaw/2),np.cos(yaw/2)]
-# quaternion_pitch = [0,np.sin(pitch/2),0,np.cos(pitch/2)]
-# move.position.x = pose_x
-# move.position.y = pose_y
-# move.position.z = pose_z
-# quaternion_1 = tf.transformations.quaternion_multiply(quaternion_0, quaternion_yaw)
-# quaternion_1 = tf.transformations.quaternion_multiply(quaternion_1, quaternion_pitch)
-# move.orientation.w, move.orientation.x, move.orientation.y, move.orientation.z = quaternion_1
-
-# joint_angles = Bax.get_joint_angles(move)
-# Bax._guarded_move_to_joint_position(joint_angles)
+joint_angles = Bax.get_joint_angles(move)
+Bax._guarded_move_to_joint_position(joint_angles)
 
 # print("variance:"+str(highest_var))
 # print("viewpoint data: "+str(highest_var_vp))

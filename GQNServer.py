@@ -99,6 +99,7 @@ def gqn_process():
     # get predictions
     highest_var = 0.0
     no_of_samples = 20
+    highest_var_vp = 0
     try:
         for i in range(0,total_frames):
             horizontal_angle_rad = compute_camera_angle_at_frame(i, total_frames)
@@ -115,7 +116,10 @@ def gqn_process():
             # gray_var_image = 0.2989*r+0.5870*g+0.1140*b
             current_var = xp.mean(var_image)
             
-            if current_var>highest_var:
+            if highest_var == 0:
+                highest_var = current_var
+                highest_var_vp = query_viewpoints[0]
+            elif current_var>highest_var:
                 highest_var = current_var
                 highest_var_vp = query_viewpoints[0]
     except KeyboardInterrupt:
