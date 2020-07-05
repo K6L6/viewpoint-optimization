@@ -327,3 +327,5 @@ sample 100 predictions from one representation and find the viewpoint observing 
 Use the hill-climbing algorithm to search for the optimal viewpoint in the entire dome.  
 discretize around 100 to 1000 viewpoints.  
 
+command to run GQNServer
+python GQNServer.py -snapdir ../../../snapshots/gqn_server_testmodel/ -snapfile ../../../snapshots/gqn_server_testmodel/snapshot_epoch_300 --gpu-device 0
