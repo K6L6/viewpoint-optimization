@@ -100,7 +100,7 @@ def gqn_process():
 
     # get predictions
     highest_var = 0.0
-    no_of_samples = 10
+    no_of_samples = 100
     highest_var_vp = 0
     try:
         for i in range(0,total_frames):
@@ -167,7 +167,7 @@ class SocketServer(threading.Thread):
             pass
         else:
             data = decode(data)
-            print(data)
+            # print(data)
             data_recv.put(data)
             logging.info("data received from client.")
         return data

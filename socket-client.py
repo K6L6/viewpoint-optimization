@@ -11,6 +11,7 @@ import cPickle as pickle
 from six.moves import queue
 
 import rospy
+import tf
 import rospkg
 import baxter_interface
 from sensor_msgs.msg import Image
@@ -114,11 +115,13 @@ move.position.z -=0.37
 next_joint_angles = Bax.get_joint_angles(move)
 Bax._guarded_move_to_joint_position(next_joint_angles)
 
+quaternion_0 = [move.orientation.x, move.orientation.y, move.orientation.z, move.orientation.w]
 offset = np.asarray([move.position.x, move.position.y, move.position.z]) - np.asarray([-0.2,0.0,0.0])
 
 observed_viewpoint = np.asarray(gazeboPose2GQN_VP([move.position.x, move.position.y, move.position.z],offset),dtype=np.float32)
 #observed_viewpoint = np.expand_dims(np.expand_dims(observed_viewpoint, axis=0), axis=0)
-
+print("start position:")
+print(move)
 #camera_distance = np.mean(np.linalg.norm(observed_viewpoint[:,:,:3],axis=2))
 #camera_position_z = np.mean(observed_viewpoint[:,:,1])
 camera_distance = np.mean(np.linalg.norm(observed_viewpoint[:3]))
@@ -157,24 +160,29 @@ while True:
     except socket.error:
         s.close()
         print("communication cut")
-        break
-         
-
-print(data_r.get())
+        break         
+    
 next_vp = data_r.get()
+print("new viewpoint received")
 x,y,z,yaw,pitch = next_vp
-camera_pos = [x,y,z]
-pose_x, pose_y, pose_z = GQN_VP2gazeboPose(camera_pos,offset)
 
+camera_pos = [x,y,z]
+print("convert to Gazebo quaternion")
+pos_x, pos_y, pos_z = GQN_VP2gazeboPose(camera_pos,offset)
+# ipdb.set_trace()
 quaternion_yaw = [0,0,np.sin(yaw/2),np.cos(yaw/2)]
 quaternion_pitch = [0,np.sin(pitch/2),0,np.cos(pitch/2)]
-move.position.x = pose_x
-move.position.y = pose_y
-move.position.z = pose_z
+
+move.position.x = pos_x
+move.position.y = pos_y
+move.position.z = pos_z
+
 quaternion_1 = tf.transformations.quaternion_multiply(quaternion_0, quaternion_yaw)
 quaternion_1 = tf.transformations.quaternion_multiply(quaternion_1, quaternion_pitch)
-move.orientation.w, move.orientation.x, move.orientation.y, move.orientation.z = quaternion_1
+move.orientation.x, move.orientation.y, move.orientation.z, move.orientation.w = quaternion_1
 
+print("new position:")
+print(move)
 joint_angles = Bax.get_joint_angles(move)
 Bax._guarded_move_to_joint_position(joint_angles)
 

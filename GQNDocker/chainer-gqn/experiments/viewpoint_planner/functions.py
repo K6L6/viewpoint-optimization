@@ -1,18 +1,19 @@
 import numpy as np
 import math
+import ipdb
 
 def compute_yaw_and_pitch(vec):
     norm = np.linalg.norm(vec)
     x, y, z = vec
-    
-    if y<0:
-        yaw = np.pi+np.arctan2(x,y)
+    # ipdb.set_trace()
+    if z<0:
+        yaw = math.pi+math.atan2(x,z)
     elif x<0:
-        yaw = np.pi*2+np.arctan2(x,y)
+        yaw = math.pi*2+math.atan2(x,z)
     else:
-        yaw = np.arctan2(x,y)
+        yaw = math.atan2(x,z)
         
-    pitch = -np.arcsin(z/norm)
+    pitch = -math.asin(y/norm)
     return yaw, pitch
 
 # def compute_yaw_and_pitch(vec):
