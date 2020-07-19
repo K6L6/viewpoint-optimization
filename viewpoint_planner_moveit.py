@@ -14,13 +14,13 @@ from six.moves import queue
 
 import rospy
 import rospkg
-import baxter_interface
+# import baxter_interface
 import moveit_commander
 import moveit_msgs.msg
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 from sensor_msgs.msg import Image
-from simulator_observer import GetImage, MoveBaxter
+from simulator_observer import GetImage#, MoveBaxter
 
 from gazebo_msgs.srv import (
     SpawnModel, 
@@ -40,10 +40,10 @@ from std_msgs.msg import (
     Empty,
 )
 
-from baxter_core_msgs.srv import (
-    SolvePositionIK, 
-    SolvePositionIKRequest,
-)
+# from baxter_core_msgs.srv import (
+#     SolvePositionIK, 
+#     SolvePositionIKRequest,
+# )
 
 def compute_yaw_and_pitch(vec):
     norm = np.linalg.norm(vec)
@@ -88,7 +88,8 @@ def GQN_VP2gazeboPose(camera_pos,offset):
     return GQN_viewpoint
 
 #class instance & init node & moveit_commander
-moveit_commander.roscpp_initialize(sys.argv)
+joint_state_topic = ['joint_states:=/robot/joint_states/']
+moveit_commander.roscpp_initialize(joint_state_topic)
 rospy.init_node('test',anonymous=True)
 
 robot = moveit_commander.RobotCommander()
@@ -100,22 +101,13 @@ im = GetImage()
 HOST = '192.168.170.209'  # The server's hostname or IP address
 PORT = 65432        # The port used by the server
 
-group_name = "baxter_left_arm"
+group_name = "both_arms"
 group = moveit_commander.MoveGroupCommander(group_name)
 
-##trajectory publisher
-display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path', moveit_msgs.msg.DisplayTrajectory, queue_size=20)
+print(group.get_current_joint_values())
 
-## obtaining basic info
-planning_frame = group.get_planning_frame()
-print("= = = Reference Frame: %s" % planning_frame)
-end-eff_link = group.get_end_effector_link()
-print("= = = End Effector: %s" % end-eff_link)
-group_names = robot.get_group_names()
-print("= = = Robot Groups", robot.get_group_names())
-print("= = = Robot State . . .")
-print(robot.get_current_state())
-print(" = = = = = = = = = = = = = ")
+# ##trajectory publisher
+# display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path', moveit_msgs.msg.DisplayTrajectory, queue_size=20)
 
 ## explicit starting position
 starting_joint_angles = {'left_w0': 0.6699952259595108,
@@ -126,8 +118,19 @@ starting_joint_angles = {'left_w0': 0.6699952259595108,
                             'left_s0': -0.08000397926829805,
                             'left_s1': -0.9999781166910306}
 ## obtain initial position
-joint_goal = group.get_current_joint_values()
-print(joint_goal)
+left_current_pose = group.get_current_pose(end_effector_link = 'left_gripper').pose
+print(left_current_pose)
+left_target_pose = left_current_pose
+left_target_pose.position.x -= 0.2
+left_target_pose.position.z -= 0.37
+
+group.set_pose_target(left_target_pose, end_effector_link='left_gripper')
+
+plan = group.plan()
+group.go(wait=True)
+
+moveit_commander.roscpp_shutdown()
+
 sys.exit()
 # Bax._guarded_move_to_joint_position(starting_joint_angles)
 # init_pose = Pose()
