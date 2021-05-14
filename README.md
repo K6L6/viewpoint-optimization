@@ -15,11 +15,11 @@ Might switch to a pytorch implementation of GQN: https://github.com/iShohei220/t
     3. [x] Data collection of images and viewpoints of 3D objects
     4. [x] Without domain randomization
     5. [ ] Apply domain randomization :snail:
-* [ ] Train GQN to recognize uncertainty from simulator dataset (in progress)
+* [x] Train GQN to recognize uncertainty from simulator dataset
     1. [x] Reconstruct GQN code to support Chainer API [iterators, trainer, extensions, etc.]
     2. [x] Reconstruct GQN code to support single node multi-GPU training (in progress)
-    3. [ ] Obtain reasonable predictions from trained model, to begin experiments
-* [ ] Apply trained GQN to move Baxter arm for viewpoint optimization
+    3. [x] Obtain reasonable predictions from trained model, to begin experiments
+* [x] Apply trained GQN to move Baxter arm for viewpoint optimization
 * [ ] Train the neural network to move task arm regardless of observed viewpoint
 * [ ] Perform grasping task
 * [ ] Perform other robot tasks (if possible)
@@ -124,11 +124,11 @@ Image size seems to be directly proportional to training time.
 | **Dataset**                 | **Green Book**                                                                                            | **Green Sphere**                                                                                          |
 | --------------------------- |:---------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------:|
 | Animation of dataset        | [![link](/result_example/animated_images.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/) |                                                                                                           |
-| Rendered from trained model | [![link](/result_example/green_book.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)      | [![link](/result_example/green_sphere.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)    |
+| Rendered from trained model(outdated) | [![link](/result_example/green_book.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)      | [![link](/result_example/green_sphere.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)    |
   
-Some thoughts on training result:  
-* Recently found out that GQN-Chainer uses y-axis for height of the camera, but the open source GQN dataset uses z-axis for height of the camera. I realized this when training with *rooms_ring_camera* dataset, and reading through *functions.py* in the Chainer implementation of GQN. However, rendered results shown in the Chainer implementation Github seem completely fine regardless. (*Why?*)
-* The rendered result seems to clip/skip/fail rendering specific viewpoints which contain Baxter in it. (under investigation)
+Some thoughts on training result(already fixed):  
+* ~~Recently found out that GQN-Chainer uses y-axis for height of the camera, but the open source GQN dataset uses z-axis for height of the camera. I realized this when training with *rooms_ring_camera* dataset, and reading through *functions.py* in the Chainer implementation of GQN. However, rendered results shown in the Chainer implementation Github seem completely fine regardless. (*Why?*)~~
+* ~~The rendered result seems to clip/skip/fail rendering specific viewpoints which contain Baxter in it. (under investigation)~~
 
 ### Rooms Free Camera without Object Rotations ###
 Usually shows only the background when using the same dataset size as well as training parameters, as the dataset created in the Gazebo simulator.
