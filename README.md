@@ -36,10 +36,8 @@ $ curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.
 $ sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
 $ sudo systemctl restart docker
 ```
-Chainer implementation of GQN: https://github.com/musyoku/chainer-gqn  
-```
-git clone https://github.com/musyoku/chainer-gqn.git
-```
+Chainer implementation of GQN used for reference: https://github.com/musyoku/chainer-gqn  
+
 ### GQN Docker Usage
 build the GQN Docker image:  
 ```
@@ -129,6 +127,4 @@ Image size seems to be directly proportional to training time.
 Some thoughts on training result(already fixed):  
 * ~~Recently found out that GQN-Chainer uses y-axis for height of the camera, but the open source GQN dataset uses z-axis for height of the camera. I realized this when training with *rooms_ring_camera* dataset, and reading through *functions.py* in the Chainer implementation of GQN. However, rendered results shown in the Chainer implementation Github seem completely fine regardless. (*Why?*)~~
 * ~~The rendered result seems to clip/skip/fail rendering specific viewpoints which contain Baxter in it. (under investigation)~~
-
-### Rooms Free Camera without Object Rotations ###
-Usually shows only the background when using the same dataset size as well as training parameters, as the dataset created in the Gazebo simulator.
+.
