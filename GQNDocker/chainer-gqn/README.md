@@ -1,4 +1,5 @@
 # Added Files Explanation
+train.py is the main file to run for training
 model_chain.py is the GQN model converted into chainer.Chain  
 multi_process_updater.py contains training updater built from Chainer API for the purpose of running GQN on multi-gpu  
 train_mGPU.py is the GQN training script modified to run with multi-gpu  
