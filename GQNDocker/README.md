@@ -11,7 +11,7 @@ Dockerfile has all the chainer-gqn dependencies in a conda environment.
 ## To link files with the local PC, when running the container
 ```nvidia-docker run -it --rm -v $PWD/[foldername]:[path/in/container] [image_name]```
 
-## Below is just a bunch of text, related to training done within the GQN container or just execution commands for copy pasting
+## Below is just a bunch of text, related to training done within the GQN container or just execution commands for copy pasting (you may ignore all the text below)
 GQN paper shows data of results up to 2 million iterations. Stated in the supplementary, section 5.6
 
 ## data format example
@@ -35,7 +35,7 @@ S is stride
 inp = 64x64 = 4096  
 conv1_1 = inp_channels:3, out_channels:256,   filter_size=2 (2x2), pad=0, stride=2  
 
-### current docker run commands
+### example docker run commands
 ```nvidia-docker run -it --name gqn-train --rm -v $PWD/gqn-datasets:/GQN/gqn-datasets -v $PWD/chainer-gqn:/GQN/chainer-gqn kelvin/gqn```
 
 ```nvidia-docker run -it --name kelvin2 --rm -v $PWD/gqn-datasets:/GQN/gqn-datasets -v $PWD/chainer-gqn:/GQN/chainer-gqn kelvin/gqn```
