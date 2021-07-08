@@ -12,7 +12,7 @@ observation4mgpu.py is a script which renders predictions after training GQN
 
 [https://deepmind.com/blog/neural-scene-representation-and-rendering/](https://deepmind.com/blog/neural-scene-representation-and-rendering/)
 
-# Requirements
+# Requirements (already included and installed by Docker file)
 
 - Python 3
 - h5py
