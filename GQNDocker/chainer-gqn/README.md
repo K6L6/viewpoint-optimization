@@ -30,12 +30,6 @@ Also you need the followings for visualization:
 - imagemagick
     - `sudo apt install imagemagick`
 
-**Current training progress**
-
-![figure](https://thumbs.gfycat.com/RevolvingAntiqueCopepod.webp)
-
-![figure](https://thumbs.gfycat.com/ThoughtfulQuerulousGlobefish.webp)
-
 # Network Architecture
 
 ![gqn_conv_draw](https://user-images.githubusercontent.com/15250418/50375239-ad31bb00-063d-11e9-9c1b-151c18dc265d.png)
