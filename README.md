@@ -124,7 +124,4 @@ Image size seems to be directly proportional to training time.
 | Animation of dataset        | [![link](/result_example/animated_images.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/) |                                                                                                           |
 | Rendered from trained model(outdated) | [![link](/result_example/green_book.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)      | [![link](/result_example/green_sphere.gif)](gitlab.com/K6L6/hidden-perspective-discovery/blob/master/)    |
   
-Some thoughts on training result(already fixed):  
-* ~~Recently found out that GQN-Chainer uses y-axis for height of the camera, but the open source GQN dataset uses z-axis for height of the camera. I realized this when training with *rooms_ring_camera* dataset, and reading through *functions.py* in the Chainer implementation of GQN. However, rendered results shown in the Chainer implementation Github seem completely fine regardless. (*Why?*)~~
-* ~~The rendered result seems to clip/skip/fail rendering specific viewpoints which contain Baxter in it. (under investigation)~~
-.
+
