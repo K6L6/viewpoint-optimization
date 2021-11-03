@@ -48,20 +48,3 @@ You need to convert `.tfrecord` files to HDF5 `.h5` format before starting train
 
 https://github.com/musyoku/gqn-datasets-translator
 
-## gqn-dataset-renderer
-
-I am working on a OpenGL/CUDA renderer for rendering GQN dataset.
-
-https://github.com/musyoku/gqn-dataset-renderer
-
-- **Shepard-Metzler**
-
-![shepard_matzler](https://user-images.githubusercontent.com/15250418/54495487-92fb3680-4927-11e9-83be-125b669701db.gif)
-
-- **Rooms**
-
-![rooms_rotate_object](https://user-images.githubusercontent.com/15250418/54522553-e5346a00-49b0-11e9-8149-221a18e68a05.gif)
-
-- **MNIST Dice**
-
-![mnist_dice](https://user-images.githubusercontent.com/15250418/54581222-119ec380-4a4f-11e9-960b-db679e33723f.gif)
