@@ -17,7 +17,7 @@ Might switch to a pytorch implementation of GQN: https://github.com/iShohei220/t
     5. [ ] Apply domain randomization :snail:
 * [x] Train GQN to recognize uncertainty from simulator dataset
     1. [x] Reconstruct GQN code to support Chainer API [iterators, trainer, extensions, etc.]
-    2. [x] Reconstruct GQN code to support single node multi-GPU training (in progress)
+    2. [x] Reconstruct GQN code to support single node multi-GPU training
     3. [x] Obtain reasonable predictions from trained model, to begin experiments
 * [x] Apply trained GQN to move Baxter arm for viewpoint optimization
 * [ ] Train the neural network to move task arm regardless of observed viewpoint
