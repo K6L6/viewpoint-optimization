@@ -114,7 +114,7 @@ RUN git clone https://github.com/ros-planning/moveit_robots.git \
 # cd ~/baxter_ws/ | ./baxter.sh | catkin_make
 
 # # # # # # # # # # # # # #
-# tini subreap for VNC? #
+# tini subreap for VNC #
 # # # # # # # # # # # #
 
 ENV TINI_VERSION v0.9.0
