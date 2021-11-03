@@ -4,7 +4,7 @@ The scripts in for this project are modified scripts to run training over multip
   
 copydata.sh is just a script that's used to copy a subset of files from a large dataset folder.  
   
-Dockerfile has all the chainer-gqn dependencies in a conda environment.  
+Dockerfile has all the chainer-gqn dependencies in a conda environment. Therefore, activate the miniconda environment in the Docker container so all dependencies are available to run training scripts.
 
 ## To build Dockerfile
 ```docker build -t [name of docker image] .```
