@@ -1,5 +1,6 @@
 # Notes on GQN Docker
-chainer-gqn folder is a repo cloned from (https://github.com/musyoku/chainer-gqn.git), and also contains modified scripts to run training over multiple GPUs.  
+chainer-gqn folder is a repo cloned from (https://github.com/musyoku/chainer-gqn.git).
+The scripts in for this project are modified scripts to run training over multiple GPUs.  
   
 copydata.sh is just a script that's used to copy a subset of files from a large dataset folder.  
   
