@@ -1,6 +1,6 @@
 # Viewpoint Optimization for Robot Tasks through Uncertainty Represented in World Models    :construction_worker:
 The purpose is to compensate for limitations of performing robot tasks with a fixed single viewpoint.  
-This is a method developed to learn optimized viewpoint for robots to perform the designated task.  
+This is a method developed to learn optimized viewpoint for robots to perform the designated task. We applied the probabilistic nature of the Generative Query Network to create uncertainty maps of a 3D environment. We define uncertainty as the pixel-wise variance of 100 predicted images from a single viewpoint. 
 Next suitable viewpoint will be selected by the hill climbing algorithm, which will search for a viewpoint that shows highest uncertainty in the world model of the agent.
 
 Might switch to a pytorch implementation of GQN: https://github.com/iShohei220/torch-gqn  
